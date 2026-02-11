@@ -1,0 +1,728 @@
+/*
+This CSS file is included with your plugin, and
+available in the app when your plugin is enabled.
+*/
+
+* {
+	box-sizing: border-box;
+}
+
+/* Yearly Planner - Obsidian design tokens */
+
+.yearly-planner-container {
+	padding: 1rem;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.yearly-planner-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 1rem;
+	flex-shrink: 0;
+}
+
+.yearly-planner-title {
+	font-family: var(--font-text, var(--font-ui));
+	font-size: var(--table-header-size, 1.25rem);
+	font-weight: var(--table-header-weight, 600);
+	color: var(--text-normal);
+	margin: 0;
+}
+
+.yearly-planner-year-wrapper {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+.yearly-planner-year-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	padding: 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--input-radius, 4px);
+	background: var(--background-modifier-form-field);
+	color: var(--text-normal);
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+}
+
+.yearly-planner-year-btn:hover {
+	background: var(--background-modifier-hover);
+}
+
+.yearly-planner-year-display {
+	min-width: 4ch;
+	padding: 0.25rem 0.5rem;
+	font-size: 1rem;
+	font-weight: 600;
+	text-align: center;
+	cursor: pointer;
+	border-radius: var(--input-radius, 4px);
+	user-select: none;
+}
+
+.yearly-planner-year-display:hover {
+	background: var(--background-modifier-hover);
+}
+
+.yearly-planner-year-modal {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	margin-top: 1rem;
+}
+
+.yearly-planner-year-modal input {
+	width: 100%;
+	padding: 0.5rem;
+	font-size: 1rem;
+}
+
+.yearly-planner-create-file-modal {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	margin-top: 1rem;
+}
+
+.yearly-planner-create-file-row {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.yearly-planner-create-file-row label {
+	font-size: 0.85rem;
+	color: var(--text-muted);
+}
+
+.yearly-planner-create-file-row.is-hidden,
+.yearly-planner-folder-other-row.is-hidden {
+	display: none;
+}
+
+.yearly-planner-mode-btn {
+	padding: 0.35rem 0.75rem;
+	margin-right: 0.25rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--input-radius, 4px);
+	background: var(--background-modifier-form-field);
+	color: var(--text-normal);
+	cursor: pointer;
+	font-size: 0.9rem;
+}
+
+.yearly-planner-mode-btn:hover {
+	background: var(--background-modifier-hover);
+}
+
+.yearly-planner-mode-btn.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+
+.yearly-planner-folder-select,
+.yearly-planner-folder-input,
+.yearly-planner-date-input,
+.yearly-planner-filename-input {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 0.5rem;
+	font-size: 1rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--input-radius, 4px);
+	background: var(--background-modifier-form-field);
+	color: var(--text-normal);
+}
+
+.yearly-planner-folder-select {
+	min-width: 0;
+	padding: 0rem 2em 0rem 0.4rem;
+}
+
+.yearly-planner-scroll {
+	flex: 1;
+	overflow-x: auto;
+	overflow-y: auto;
+	min-height: 0;
+	-webkit-overflow-scrolling: touch;
+}
+
+.yearly-planner-table {
+	width: 100%;
+	border-collapse: separate;
+	border-spacing: 0;
+	table-layout: fixed;
+	background: var(--table-background, var(--background-primary));
+	border: 1px solid
+		var(--table-border-color, var(--background-modifier-border));
+	border-radius: var(--radius-s, 4px);
+	min-width: max-content;
+	box-sizing: border-box;
+}
+
+.yearly-planner-table th,
+.yearly-planner-table td {
+	box-sizing: border-box;
+	padding: 0.25rem 0.5rem;
+	font-size: var(--table-text-size, var(--font-ui-small-size));
+	color: var(--table-text-color, var(--text-normal));
+	border: 1px solid
+		var(--table-border-color, var(--background-modifier-border));
+	text-align: center;
+	vertical-align: middle;
+	min-width: 2.5rem;
+}
+
+.yearly-planner-table th {
+	background: var(--table-header-background, var(--background-secondary));
+	color: var(--table-header-color, var(--text-normal));
+	font-weight: var(--table-header-weight, 600);
+}
+
+.yearly-planner-table thead th {
+	min-width: 3rem;
+}
+
+/* Sticky headers: month row (top) and day column (left) - fixed when scrolling */
+/* z-index must exceed .yearly-planner-cell-files (1000) so headers are not obscured by file backgrounds */
+/* Use --background-secondary (skip --table-header-background which can be transparent in some themes) */
+.yearly-planner-table thead th {
+	position: sticky;
+	top: 0;
+	z-index: 1001;
+	background-color: var(
+		--background-secondary,
+		var(--background-primary)
+	) !important;
+	box-shadow: 0 1px 0
+		var(--table-border-color, var(--background-modifier-border));
+}
+
+.yearly-planner-table thead .yearly-planner-corner {
+	position: sticky;
+	top: 0;
+	left: 0;
+	z-index: 1002;
+	background-color: var(
+		--background-secondary,
+		var(--background-primary)
+	) !important;
+	box-shadow: 1px 1px 0
+		var(--table-border-color, var(--background-modifier-border));
+}
+
+.yearly-planner-table tbody th {
+	position: sticky;
+	left: 0;
+	z-index: 1001;
+	background-color: var(
+		--background-secondary,
+		var(--background-primary)
+	) !important;
+	box-shadow: 1px 0 0
+		var(--table-border-color, var(--background-modifier-border));
+}
+
+.yearly-planner-table tbody tr:nth-child(odd) td {
+	background: var(
+		--table-row-alt-background,
+		var(--background-secondary-alt)
+	);
+}
+
+.yearly-planner-table tbody tr:nth-child(even) td {
+	background: var(--table-background, var(--background-primary));
+}
+
+.yearly-planner-table tbody td {
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+}
+
+.yearly-planner-table tbody td:hover {
+	background: var(
+		--table-row-background-hover,
+		var(--background-modifier-hover)
+	);
+}
+
+.yearly-planner-table tbody tr:nth-child(odd) td:hover,
+.yearly-planner-table tbody tr:nth-child(even) td:hover {
+	background: var(
+		--table-row-background-hover,
+		var(--background-modifier-hover)
+	);
+}
+
+.yearly-planner-cell-invalid {
+	background: var(--background-secondary) !important;
+	color: var(--text-faint);
+	opacity: 0.6;
+	cursor: default;
+	pointer-events: none;
+}
+
+/* Holiday indicator: left border accent */
+.yearly-planner-cell-holiday {
+	border-left: 3px solid var(--text-accent) !important;
+}
+
+.yearly-planner-cell-holiday.yearly-planner-cell-selected {
+	border-left-color: var(--text-on-accent, var(--text-normal)) !important;
+}
+
+/* Holiday badges - distinct from file chips */
+.yearly-planner-cell-holidays {
+	display: flex;
+	flex-direction: column;
+	gap: 0.125rem;
+	align-items: stretch;
+	justify-content: flex-end;
+	position: relative;
+	z-index: 1000;
+	width: 100%;
+	min-width: 0;
+}
+
+.yearly-planner-cell-holiday-badge {
+	display: flex;
+	align-items: center;
+	box-sizing: border-box;
+	width: 100%;
+	background: color-mix(in srgb, var(--text-accent) 12%, var(--background-primary));
+	border-left: 3px solid var(--text-accent);
+	color: var(--text-accent);
+	font-size: 0.65em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
+	min-width: 0;
+	padding: 0.15rem 0.4rem 0.15rem 0.4rem;
+	border-radius: 2px;
+	cursor: pointer;
+	justify-content: flex-start;
+}
+
+.yearly-planner-cell-holiday-badge:hover {
+	background: color-mix(in srgb, var(--text-accent) 20%, var(--background-modifier-hover));
+	color: var(--text-accent);
+}
+
+.yearly-planner-holiday-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* Single-date files always on top when overlapping with range bars */
+.yearly-planner-cell-files {
+	display: flex;
+	flex-direction: column;
+	gap: 0.125rem;
+	align-items: stretch;
+	justify-content: center;
+	min-height: 100%;
+	position: relative;
+	z-index: 1000;
+	width: 100%;
+	min-width: 0;
+}
+
+/* When both range bar and single files exist: put range label at top, single files at bottom to avoid overlap */
+.yearly-planner-table tbody td[data-has-both] .yearly-planner-range-bar {
+	justify-content: flex-start;
+	padding-top: 0.2rem;
+}
+
+.yearly-planner-table tbody td[data-has-both] .yearly-planner-cell-files {
+	justify-content: flex-end;
+	padding-top: 1.6em; /* Reserve top zone for range label */
+}
+
+/* When holiday exists: range bar leaves space at bottom to avoid overlap */
+.yearly-planner-table tbody td[data-has-holiday] .yearly-planner-range-bar {
+	padding-bottom: 1.6em;
+}
+
+.yearly-planner-cell-file {
+	position: relative;
+	z-index: 1;
+	box-sizing: border-box;
+	width: 100%;
+	background: var(--background-primary);
+	font-size: 0.65em;
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
+	min-width: 0;
+	padding: 0.15rem 0.25rem 0.15rem 0.4rem;
+	border-radius: 2px;
+	border-left: 3px solid var(--interactive-accent);
+	cursor: pointer;
+}
+
+.yearly-planner-cell-file:nth-child(1) {
+	border-left-color: var(--interactive-accent);
+}
+
+.yearly-planner-cell-file:nth-child(2) {
+	border-left-color: #22c55e;
+}
+
+.yearly-planner-cell-file:nth-child(3) {
+	border-left-color: #f59e0b;
+}
+
+.yearly-planner-cell-file:nth-child(4) {
+	border-left-color: #8b5cf6;
+}
+
+.yearly-planner-cell-file:nth-child(5) {
+	border-left-color: #ec4899;
+}
+
+.yearly-planner-cell-file:nth-child(n + 6) {
+	border-left-color: var(--text-muted);
+}
+
+.yearly-planner-cell-file:hover {
+	color: var(--text-accent);
+	background: var(--background-modifier-hover);
+}
+
+/* Drag selection highlight */
+.yearly-planner-cell-selected {
+	background: var(--interactive-accent) !important;
+	color: var(--text-on-accent, var(--text-normal)) !important;
+	opacity: 0.4;
+}
+
+/* Range bar - connected bar visualization (B) */
+.yearly-planner-range-bar {
+	--range-color: var(--interactive-accent);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	border-left: 4px solid var(--range-color);
+	background: color-mix(in srgb, var(--range-color) 15%, transparent);
+	cursor: pointer;
+	overflow: hidden;
+	/* Ensure layered bars receive clicks by stack order */
+	z-index: 1;
+}
+
+.yearly-planner-range-bar[data-range-stack="0"] {
+	--range-color: var(--interactive-accent);
+	left: 0;
+	right: 0;
+	z-index: 1;
+}
+
+.yearly-planner-range-bar[data-range-stack="1"] {
+	--range-color: #22c55e;
+	left: 6px;
+	right: 0;
+	z-index: 2;
+}
+
+.yearly-planner-range-bar[data-range-stack="2"] {
+	--range-color: #f59e0b;
+	left: 12px;
+	right: 0;
+	z-index: 3;
+}
+
+.yearly-planner-range-bar[data-range-stack="3"] {
+	--range-color: #8b5cf6;
+	left: 18px;
+	right: 0;
+	z-index: 4;
+}
+
+.yearly-planner-range-bar[data-range-stack="4"] {
+	--range-color: #ec4899;
+	left: 24px;
+	right: 0;
+	z-index: 5;
+}
+
+.yearly-planner-range-bar[data-range-stack="5"],
+.yearly-planner-range-bar[data-range-stack="6"],
+.yearly-planner-range-bar[data-range-stack="7"],
+.yearly-planner-range-bar[data-range-stack="8"],
+.yearly-planner-range-bar[data-range-stack="9"] {
+	--range-color: var(--text-muted);
+	left: 30px;
+	right: 0;
+	z-index: 6;
+}
+
+.yearly-planner-range-run-start {
+	border-top-left-radius: var(--input-radius, 4px);
+	border-top-right-radius: var(--input-radius, 4px);
+}
+
+.yearly-planner-range-run-end {
+	border-bottom-left-radius: var(--input-radius, 4px);
+	border-bottom-right-radius: var(--input-radius, 4px);
+}
+
+.yearly-planner-range-label {
+	font-size: 0.65em;
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
+	padding: 0.1rem 0.2rem;
+	border-radius: 2px;
+}
+
+.yearly-planner-range-bar:hover .yearly-planner-range-label {
+	color: var(--range-color);
+}
+
+.yearly-planner-table tbody td {
+	position: relative;
+}
+
+.yearly-planner-range-modal-dates {
+	font-family: var(--font-monospace);
+	color: var(--text-muted);
+	margin: 0.5rem 0 1rem;
+}
+
+.yearly-planner-modal-content .mod-cta {
+	margin-top: 1rem;
+}
+
+/* Mobile: ~768px - larger cells for touch, horizontal scroll */
+@media (max-width: 768px) {
+	.yearly-planner-container {
+		padding: 0.5rem;
+	}
+
+	.yearly-planner-header {
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.yearly-planner-year-btn {
+		width: 2.5rem;
+		height: 2.5rem;
+	}
+
+	.yearly-planner-year-display {
+		min-width: 4.5ch;
+		padding: 0.35rem 0.5rem;
+	}
+
+	.yearly-planner-title {
+		font-size: 1.25rem;
+	}
+
+	.yearly-planner-scroll {
+		overflow-x: scroll;
+		overflow-y: auto;
+	}
+
+	.yearly-planner-table {
+		table-layout: auto;
+		width: max-content;
+		min-width: 100%;
+	}
+
+	.yearly-planner-table th,
+	.yearly-planner-table td {
+		box-sizing: border-box;
+		min-width: 4rem;
+		width: 4rem;
+		padding: 0.6rem 0.5rem;
+		font-size: 0.9rem;
+	}
+
+	.yearly-planner-table thead th {
+		min-width: 4rem;
+		width: 4rem;
+		font-size: 0.9rem;
+	}
+
+	.yearly-planner-table tbody th {
+		min-width: 2.5rem;
+		width: 2.5rem;
+	}
+
+	.yearly-planner-cell-file {
+		font-size: 0.75em;
+		padding: 0.2rem 0.3rem 0.2rem 0.45rem;
+	}
+
+	.yearly-planner-range-bar {
+		border-left-width: 5px;
+	}
+
+	.yearly-planner-range-label {
+		font-size: 0.75em;
+		padding: 0.2rem 0.3rem;
+	}
+
+	/* Reduce border-radius on mobile to prevent excessive rounding in small cells */
+	.yearly-planner-table {
+		border-radius: 2px;
+	}
+
+	.yearly-planner-cell-file {
+		border-radius: 2px;
+	}
+
+	.yearly-planner-range-run-start {
+		border-top-left-radius: 2px;
+		border-top-right-radius: 2px;
+	}
+
+	.yearly-planner-range-run-end {
+		border-bottom-left-radius: 2px;
+		border-bottom-right-radius: 2px;
+	}
+
+	.yearly-planner-range-label {
+		border-radius: 2px;
+	}
+}
+
+/* Small mobile: ~480px */
+@media (max-width: 480px) {
+	.yearly-planner-container {
+		padding: 0.25rem;
+	}
+
+	.yearly-planner-table {
+		table-layout: auto;
+		width: max-content;
+		min-width: 100%;
+	}
+
+	.yearly-planner-table th,
+	.yearly-planner-table td {
+		box-sizing: border-box;
+		min-width: 3.5rem;
+		width: 3.5rem;
+		padding: 0.55rem 0.4rem;
+		font-size: 0.85rem;
+	}
+
+	.yearly-planner-table thead th {
+		min-width: 3.5rem;
+		width: 3.5rem;
+		font-size: 0.85rem;
+	}
+
+	.yearly-planner-table tbody th {
+		min-width: 2.25rem;
+		width: 2.25rem;
+	}
+
+	.yearly-planner-cell-file {
+		font-size: 0.8em;
+		padding: 0.25rem 0.35rem 0.25rem 0.5rem;
+	}
+
+	.yearly-planner-range-bar {
+		border-left-width: 5px;
+	}
+
+	.yearly-planner-range-label {
+		font-size: 0.8em;
+		padding: 0.25rem 0.35rem;
+	}
+}
+
+/* Obsidian mobile mode (body class) */
+body.is-mobile .yearly-planner-container,
+body.-is-mobile .yearly-planner-container {
+	padding: 0.5rem;
+}
+
+/* Mobile: bottom padding so table is not covered by tools tab (configurable in settings) */
+body.is-mobile .yearly-planner-scroll,
+body.-is-mobile .yearly-planner-scroll {
+	padding-bottom: var(
+		--yearly-planner-mobile-bottom-padding,
+		max(3.5rem, env(safe-area-inset-bottom, 0px))
+	);
+}
+
+body.is-mobile .yearly-planner-cell-file,
+body.-is-mobile .yearly-planner-cell-file {
+	font-size: 0.75em;
+	padding: 0.2rem 0.3rem 0.2rem 0.45rem;
+}
+
+body.is-mobile .yearly-planner-range-bar,
+body.-is-mobile .yearly-planner-range-bar {
+	border-left-width: 5px;
+}
+
+body.is-mobile .yearly-planner-range-label,
+body.-is-mobile .yearly-planner-range-label {
+	font-size: 0.75em;
+	padding: 0.2rem 0.3rem;
+}
+
+body.is-mobile .yearly-planner-table tbody td:active,
+body.-is-mobile .yearly-planner-table tbody td:active {
+	background: var(--background-modifier-hover);
+}
+
+body.is-mobile .yearly-planner-cell-file:active,
+body.-is-mobile .yearly-planner-cell-file:active,
+body.is-mobile .yearly-planner-range-bar:active,
+body.-is-mobile .yearly-planner-range-bar:active {
+	opacity: 0.85;
+}
+
+/* Reduce border-radius on Obsidian mobile to prevent excessive rounding */
+body.is-mobile .yearly-planner-table,
+body.-is-mobile .yearly-planner-table {
+	border-radius: 2px;
+}
+
+body.is-mobile .yearly-planner-cell-file,
+body.-is-mobile .yearly-planner-cell-file {
+	border-radius: 2px;
+}
+
+body.is-mobile .yearly-planner-range-run-start,
+body.-is-mobile .yearly-planner-range-run-start {
+	border-top-left-radius: 2px;
+	border-top-right-radius: 2px;
+}
+
+body.is-mobile .yearly-planner-range-run-end,
+body.-is-mobile .yearly-planner-range-run-end {
+	border-bottom-left-radius: 2px;
+	border-bottom-right-radius: 2px;
+}
+
+body.is-mobile .yearly-planner-range-label,
+body.-is-mobile .yearly-planner-range-label {
+	border-radius: 2px;
+}

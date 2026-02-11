@@ -1,0 +1,12 @@
+{
+	"id": "diary-obsidian",
+	"name": "Diary",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "This is a diary obsidian plugin for Obsidian (https://github.com/POBSIZ/diary-obsidian)",
+	"author": "Won",
+	"authorUrl": "https://github.com/POBSIZ",
+	"fundingUrl": "https://github.com/sponsors/POBSIZ",
+	"isDesktopOnly": false,
+	"css": "styles.css"
+}
