@@ -172,3 +172,20 @@ export function getFileTitle(app: App, file: TFile): string {
 	if (headingStr) return headingStr;
 	return file.basename;
 }
+
+/** Returns chip color from frontmatter if valid; otherwise null (use default). */
+export function getChipColor(app: App, file: TFile): string | null {
+	const cache = app.metadataCache.getFileCache(file);
+	const rawColor: unknown = cache?.frontmatter?.color;
+	const colorStr = rawColor != null ? toStringSafe(rawColor) : null;
+	if (!colorStr || colorStr.trim() === "") return null;
+	const trimmed = colorStr.trim();
+	if (!isValidCssColor(trimmed)) return null;
+	return trimmed;
+}
+
+function isValidCssColor(value: string): boolean {
+	const div = document.createElement("div");
+	div.style.color = value;
+	return div.style.color !== "";
+}

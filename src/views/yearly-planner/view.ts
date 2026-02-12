@@ -2,10 +2,7 @@ import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
 import DiaryObsidian from "../../main";
 import { VIEW_TYPE_YEARLY_PLANNER } from "../../constants";
 import type { YearlyPlannerState, DragState } from "./types";
-import {
-	getRangeFilePath,
-	getRangeStackIndexMap,
-} from "./file-utils";
+import { getRangeFilePath, getRangeStackIndexMap } from "./file-utils";
 import {
 	renderYearlyPlannerHeader,
 	createPlannerCell,
@@ -26,7 +23,10 @@ import { getHolidaysForYear } from "../../utils/holidays";
 
 export type { YearlyPlannerState } from "./types";
 
-export class YearlyPlannerView extends ItemView implements YearlyPlannerViewDelegate {
+export class YearlyPlannerView
+	extends ItemView
+	implements YearlyPlannerViewDelegate
+{
 	year: number;
 	dragState: DragState | null = null;
 	private interactionHandler: PlannerInteractionHandler;
@@ -77,12 +77,28 @@ export class YearlyPlannerView extends ItemView implements YearlyPlannerViewDele
 		contentEl.empty();
 		contentEl.addClass("yearly-planner-container");
 
-		const pad =
-			this.plugin.settings.mobileBottomPadding ?? 3.5;
+		const pad = this.plugin.settings.mobileBottomPadding ?? 3.5;
 		contentEl.style.setProperty(
 			"--yearly-planner-mobile-bottom-padding",
 			`${pad}rem`,
 		);
+
+		const cellWidth = this.plugin.settings.mobileCellWidth ?? 0;
+		if (cellWidth > 0) {
+			contentEl.style.setProperty(
+				"--yearly-planner-mobile-cell-width",
+				`${cellWidth}rem`,
+			);
+			contentEl.style.setProperty(
+				"--yearly-planner-mobile-day-width",
+				`${(cellWidth * 0.611).toFixed(2)}rem`,
+			);
+		} else {
+			contentEl.style.removeProperty(
+				"--yearly-planner-mobile-cell-width",
+			);
+			contentEl.style.removeProperty("--yearly-planner-mobile-day-width");
+		}
 
 		this.renderHeader(contentEl);
 		this.renderTable(contentEl);
@@ -124,8 +140,13 @@ export class YearlyPlannerView extends ItemView implements YearlyPlannerViewDele
 					new CreateFileModal(this.app, {
 						bounds: getSelectionBounds(this.dragState),
 						defaultFolder,
-						createSingleDateFile: (folder, basename) =>
-							createSingleDateFileOp(this.app, folder, basename),
+						createSingleDateFile: (folder, basename, color) =>
+							createSingleDateFileOp(
+								this.app,
+								folder,
+								basename,
+								color,
+							),
 						createRangeFile: (folder, ...args) =>
 							createRangeFileOp(this.app, folder, ...args),
 						onCreated: () => this.render(),
@@ -167,19 +188,20 @@ export class YearlyPlannerView extends ItemView implements YearlyPlannerViewDele
 
 		const tbody = table.createEl("tbody");
 		const folder = this.plugin.settings.plannerFolder || "Planner";
-		const rangeStackMap = getRangeStackIndexMap(this.app, this.year);
 		const { showHolidays, holidayCountry } = this.plugin.settings;
 		const holidaysData =
 			showHolidays && holidayCountry
 				? getHolidaysForYear(holidayCountry, this.year)
 				: null;
+		const rangeStackMap = getRangeStackIndexMap(this.app, this.year);
 		const cellCtx = {
 			year: this.year,
 			app: this.app,
 			folder,
-			rangeStackMap,
 			dragState: this.dragState,
 			holidaysData,
+			monthLabels: this.plugin.settings.monthLabels,
+			rangeStackMap,
 		};
 
 		for (let day = 1; day <= 31; day++) {

@@ -9,3 +9,6 @@ export const MONTH_LABELS_EN = [
 	"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 	"Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ] as const;
+
+export const WEEKEND_LABELS_KO = { sat: "토", sun: "일" } as const;
+export const WEEKEND_LABELS_EN = { sat: "Sat", sun: "Sun" } as const;

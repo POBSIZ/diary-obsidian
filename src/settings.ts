@@ -12,6 +12,8 @@ export interface DiaryObsidianSettings {
 	holidayCountry: string;
 	/** Mobile only: bottom padding (rem) so table isn't covered by Obsidian tools tab. 0 = use default. */
 	mobileBottomPadding: number;
+	/** Mobile only: month cell width (rem). 0 = use default. */
+	mobileCellWidth: number;
 }
 
 export const DEFAULT_SETTINGS: DiaryObsidianSettings = {
@@ -21,6 +23,7 @@ export const DEFAULT_SETTINGS: DiaryObsidianSettings = {
 	showHolidays: true,
 	holidayCountry: "KR",
 	mobileBottomPadding: 3.5,
+	mobileCellWidth: 4.5,
 };
 
 export class DiaryObsidianSettingTab extends PluginSettingTab {
@@ -126,6 +129,22 @@ export class DiaryObsidianSettingTab extends PluginSettingTab {
 					.setDynamicTooltip()
 					.onChange(async (value) => {
 						this.plugin.settings.mobileBottomPadding = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Mobile cell width")
+			.setDesc(
+				"Width (rem) of month cells on mobile. 0 to use default (4.5rem / 4rem by breakpoint).",
+			)
+			.addSlider((slider) =>
+				slider
+					.setLimits(0, 8, 0.25)
+					.setValue(this.plugin.settings.mobileCellWidth)
+					.setDynamicTooltip()
+					.onChange(async (value) => {
+						this.plugin.settings.mobileCellWidth = value;
 						await this.plugin.saveSettings();
 					}),
 			);

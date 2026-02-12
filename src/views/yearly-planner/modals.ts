@@ -2,11 +2,33 @@ import { App, Modal, Notice, TFile } from "obsidian";
 import { getAllFolderPaths } from "./file-utils";
 import type { CreateRangeModalBounds, SelectionBounds } from "./types";
 
+/** Chip color presets for CreateFileModal. */
+const CHIP_COLOR_PRESETS: readonly { hex: string }[] = [
+	{ hex: "#7c3aed" },
+	{ hex: "#22c55e" },
+	{ hex: "#f59e0b" },
+	{ hex: "#8b5cf6" },
+	{ hex: "#ec4899" },
+	{ hex: "#6b7280" },
+];
+
+/** Convert 3-digit hex to 6-digit for color picker. */
+function toHex6(hex: string): string | null {
+	const m = hex.match(/^#([0-9a-fA-F]{3})$/);
+	if (m) {
+		const c = m[1] ?? "";
+		return `#${c[0]}${c[0]}${c[1]}${c[1]}${c[2]}${c[2]}`;
+	}
+	const m6 = hex.match(/^#([0-9a-fA-F]{6})$/);
+	return m6 ? hex : null;
+}
+
 export type CreateSingleDateFileFn = (basename: string) => Promise<TFile>;
 
 export type CreateSingleDateFileWithFolderFn = (
 	folder: string,
 	basename: string,
+	color?: string,
 ) => Promise<TFile>;
 
 export type CreateRangeFileFn = (
@@ -26,6 +48,7 @@ export type CreateRangeFileWithFolderFn = (
 	endYear: number,
 	endMonth: number,
 	endDay: number,
+	color?: string,
 ) => Promise<TFile>;
 
 export class CreateRangeModal extends Modal {
@@ -101,12 +124,10 @@ export class HolidayInfoModal extends Modal {
 	onOpen(): void {
 		this.contentEl.addClass("yearly-planner-modal-content");
 		this.contentEl.createEl("h2", { text: "연휴" });
-		const dateEl = this.contentEl.createEl("p", {
+		this.contentEl.createEl("p", {
 			cls: "yearly-planner-holiday-modal-date",
 			text: formatHolidayDate(this.dateStr),
 		});
-		dateEl.style.fontSize = "1.1em";
-		dateEl.style.fontWeight = "600";
 		const namesEl = this.contentEl.createEl("p", {
 			cls: "yearly-planner-holiday-modal-names",
 		});
@@ -160,6 +181,9 @@ export class CreateFileModal extends Modal {
 	private startDateInput!: HTMLInputElement;
 	private endDateInput!: HTMLInputElement;
 	private filenameInput!: HTMLInputElement;
+	private colorInput!: HTMLInputElement;
+	private colorPickerInput!: HTMLInputElement;
+	private colorPresetBtns: HTMLButtonElement[] = [];
 	private rangeRow!: HTMLElement;
 	private singleModeBtn!: HTMLButtonElement;
 	private rangeModeBtn!: HTMLButtonElement;
@@ -307,6 +331,45 @@ export class CreateFileModal extends Modal {
 			if (this.mode === "range") this.syncDatesFromFilename();
 		};
 
+		const colorRow = form.createDiv({
+			cls: "yearly-planner-create-file-row",
+		});
+		colorRow.createEl("label", { text: "Color" });
+		const colorPresetsWrap = colorRow.createDiv({
+			cls: "yearly-planner-color-row",
+		});
+		const presetsEl = colorPresetsWrap.createDiv({
+			cls: "yearly-planner-color-presets",
+		});
+		CHIP_COLOR_PRESETS.forEach((preset) => {
+			const btn = presetsEl.createEl("button", {
+				cls: "yearly-planner-color-preset-btn",
+				attr: { type: "button" },
+			});
+			btn.style.backgroundColor = preset.hex;
+			btn.ariaLabel = preset.hex;
+			btn.title = preset.hex;
+			btn.onclick = () => this.setColorFromPreset(preset.hex);
+			this.colorPresetBtns.push(btn);
+		});
+		this.colorPickerInput = colorPresetsWrap.createEl("input", {
+			type: "color",
+			cls: "yearly-planner-color-picker",
+		});
+		this.colorPickerInput.value = "#22c55e";
+		this.colorPickerInput.title = "Pick color";
+		this.colorPickerInput.oninput = () => {
+			this.colorInput.value = this.colorPickerInput.value;
+			this.updateColorPresetActive();
+		};
+		this.colorInput = colorRow.createEl("input", {
+			type: "text",
+			cls: "yearly-planner-filename-input",
+		});
+		this.colorInput.placeholder = "#22c55e";
+		this.colorInput.title = "Chip color (hex, rgb, or color name)";
+		this.colorInput.oninput = () => this.syncColorFromText();
+
 		this.syncFilename();
 		this.updateModeUI();
 
@@ -323,6 +386,31 @@ export class CreateFileModal extends Modal {
 		if (isOther && !this.folderCustomInput.value) {
 			this.folderCustomInput.focus();
 		}
+	}
+
+	private setColorFromPreset(hex: string): void {
+		this.colorInput.value = hex;
+		this.colorPickerInput.value = toHex6(hex) ?? hex;
+		this.updateColorPresetActive();
+	}
+
+	private syncColorFromText(): void {
+		const hex = toHex6(this.colorInput.value.trim());
+		if (hex) {
+			this.colorPickerInput.value = hex;
+		}
+		this.updateColorPresetActive();
+	}
+
+	private updateColorPresetActive(): void {
+		const val = this.colorInput.value.trim().toLowerCase();
+		CHIP_COLOR_PRESETS.forEach((preset, i) => {
+			const btn = this.colorPresetBtns[i];
+			btn?.toggleClass(
+				"is-active",
+				val === preset.hex.toLowerCase(),
+			);
+		});
 	}
 
 	private getFolderValue(): string {
@@ -379,9 +467,11 @@ export class CreateFileModal extends Modal {
 					filename.split("-").slice(0, 3).join("-"),
 				);
 				if (!parsed && !/^\d{4}-\d{2}-\d{2}/.test(filename)) return;
+				const color = this.colorInput.value.trim() || undefined;
 				const file = await this.options.createSingleDateFile(
 					folder,
 					filename,
+					color,
 				);
 				this.options.onCreated();
 				this.close();
@@ -400,6 +490,7 @@ export class CreateFileModal extends Modal {
 					endParts[1] ?? 0,
 					endParts[2] ?? 0,
 				];
+				const color = this.colorInput.value.trim() || undefined;
 				const file = await this.options.createRangeFile(
 					folder,
 					sy,
@@ -408,6 +499,7 @@ export class CreateFileModal extends Modal {
 					ey,
 					em,
 					ed,
+					color,
 				);
 				this.options.onCreated();
 				this.close();

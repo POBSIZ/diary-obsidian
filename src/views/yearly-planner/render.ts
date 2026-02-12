@@ -1,10 +1,15 @@
 import { App, setIcon } from "obsidian";
-import { MONTH_LABELS_KO, MONTH_LABELS_EN } from "../../constants";
-import { getDaysInMonth } from "../../utils/date";
+import {
+	MONTH_LABELS_KO,
+	MONTH_LABELS_EN,
+	WEEKEND_LABELS_KO,
+	WEEKEND_LABELS_EN,
+} from "../../constants";
+import { getDaysInMonth, getDayOfWeek } from "../../utils/date";
 import type { DragState } from "./types";
 import type { HolidayData } from "../../utils/holidays";
 import { YearInputModal } from "./modals";
-import { getFilesForDate, getFileTitle } from "./file-utils";
+import { getFilesForDate, getFileTitle, getChipColor } from "./file-utils";
 import { isDateInSelection } from "./selection";
 
 export interface HeaderCallbacks {
@@ -78,9 +83,10 @@ export interface CreateCellContext {
 	year: number;
 	app: App;
 	folder: string;
-	rangeStackMap: Map<string, number>;
 	dragState: DragState | null;
 	holidaysData: HolidayData | null;
+	monthLabels: string;
+	rangeStackMap: Map<string, number>;
 }
 
 export function createPlannerCell(
@@ -91,20 +97,27 @@ export function createPlannerCell(
 ): HTMLTableCellElement | null {
 	const daysInMonth = getDaysInMonth(ctx.year, month);
 	const isValid = day <= daysInMonth;
-	const isSelected = isDateInSelection(
-		ctx.year,
-		month,
-		day,
-		ctx.dragState,
-	);
+	const isSelected = isDateInSelection(ctx.year, month, day, ctx.dragState);
 	const dateKey = `${ctx.year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 	const isHoliday = ctx.holidaysData?.dates.has(dateKey) ?? false;
+	const dayOfWeek = getDayOfWeek(ctx.year, month, day);
+	const isSaturday = dayOfWeek === 6;
+	const isSunday = dayOfWeek === 0;
+	const now = new Date();
+	const isToday =
+		isValid &&
+		ctx.year === now.getFullYear() &&
+		month === now.getMonth() + 1 &&
+		day === now.getDate();
 
 	const cell = row.createEl("td", {
 		cls: [
 			isValid ? "" : "yearly-planner-cell-invalid",
 			isSelected && "yearly-planner-cell-selected",
 			isHoliday && "yearly-planner-cell-holiday",
+			isSaturday && "yearly-planner-cell-saturday",
+			isSunday && "yearly-planner-cell-sunday",
+			isToday && "yearly-planner-cell-today",
 		]
 			.filter(Boolean)
 			.join(" "),
@@ -131,7 +144,7 @@ export function createPlannerCell(
 	}
 
 	if (rangeFiles.length > 0) {
-		for (const { file, runPos, isFirst } of rangeFiles) {
+		rangeFiles.forEach(({ file, runPos, isFirst }) => {
 			const barClasses = [
 				"yearly-planner-range-bar",
 				runPos.runStart && "yearly-planner-range-run-start",
@@ -146,13 +159,17 @@ export function createPlannerCell(
 			const stackIdx = ctx.rangeStackMap.get(file.basename) ?? 0;
 			barEl.dataset.rangeStack = String(Math.min(stackIdx, 9));
 			barEl.dataset.path = file.path;
+			const chipColor = getChipColor(ctx.app, file);
+			if (chipColor) {
+				barEl.style.setProperty("--range-color", chipColor);
+			}
 			if (isFirst) {
 				barEl.createSpan({
 					cls: "yearly-planner-range-label",
 					text: getFileTitle(ctx.app, file),
 				});
 			}
-		}
+		});
 	}
 
 	if (singleFiles.length > 0) {
@@ -164,6 +181,10 @@ export function createPlannerCell(
 			linkEl.textContent = getFileTitle(ctx.app, file);
 			linkEl.title = file.path;
 			linkEl.dataset.path = file.path;
+			const chipColor = getChipColor(ctx.app, file);
+			if (chipColor) {
+				linkEl.style.borderLeftColor = chipColor;
+			}
 		}
 	}
 
@@ -181,6 +202,19 @@ export function createPlannerCell(
 		});
 		badge.dataset.holidayDate = dateKey;
 		badge.dataset.holidayNames = JSON.stringify(holidayNames);
+	}
+
+	if (isValid && (isSaturday || isSunday)) {
+		const weekendLabels =
+			ctx.monthLabels === "korean"
+				? WEEKEND_LABELS_KO
+				: WEEKEND_LABELS_EN;
+		const label = isSaturday ? weekendLabels.sat : weekendLabels.sun;
+		const labelEl = cell.createSpan({
+			cls: "yearly-planner-weekend-label",
+			text: label,
+		});
+		labelEl.dataset.weekend = isSaturday ? "sat" : "sun";
 	}
 
 	return cell;

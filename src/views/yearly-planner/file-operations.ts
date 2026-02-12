@@ -37,6 +37,7 @@ export async function createRangeFile(
 	endYear: number,
 	endMonth: number,
 	endDay: number,
+	color?: string,
 ): Promise<TFile> {
 	const path = getRangeFilePath(
 		folder,
@@ -57,9 +58,11 @@ export async function createRangeFile(
 	}
 	const startStr = `${startYear}-${pad(startMonth)}-${pad(startDay)}`;
 	const endStr = `${endYear}-${pad(endMonth)}-${pad(endDay)}`;
+	const colorLine = color?.trim() ? `color: "${color.trim().replace(/"/g, '\\"')}"\n` : "";
 	const content = `---
 date_start: ${startStr}
 date_end: ${endStr}
+${colorLine}
 ---
 
 # ${startStr} ~ ${endStr}
@@ -78,6 +81,7 @@ export async function createSingleDateFile(
 	app: App,
 	folder: string,
 	basename: string,
+	color?: string,
 ): Promise<TFile> {
 	const trimmed = (folder || "Planner").trim();
 	const cleanBasename = basename.trim().replace(/\.md$/i, "") || "untitled";
@@ -94,6 +98,14 @@ export async function createSingleDateFile(
 		await app.vault.createFolder(dir);
 	}
 	const dateStr = extractDateFromBasename(cleanBasename) ?? cleanBasename;
-	const content = `## ${dateStr}\n\n`;
+	const colorBlock =
+		color?.trim() ?
+			`---
+color: "${color.trim().replace(/"/g, '\\"')}"
+---
+
+`
+		: "";
+	const content = `${colorBlock}## ${dateStr}\n\n`;
 	return app.vault.create(path, content);
 }
