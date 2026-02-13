@@ -1,4 +1,5 @@
 import { App, setIcon } from "obsidian";
+import { t } from "../../i18n";
 import {
 	MONTH_LABELS_KO,
 	MONTH_LABELS_EN,
@@ -31,7 +32,7 @@ export function renderYearlyPlannerHeader(
 ): void {
 	const header = contentEl.createDiv({ cls: "yearly-planner-header" });
 	header.createEl("h1", {
-		text: "Yearly planner",
+		text: t("view.title"),
 		cls: "yearly-planner-title",
 	});
 
@@ -43,7 +44,7 @@ export function renderYearlyPlannerHeader(
 		cls: "yearly-planner-year-btn",
 	});
 	setIcon(prevBtn, "chevron-left");
-	prevBtn.ariaLabel = "Previous year";
+	prevBtn.ariaLabel = t("header.prevYear");
 	prevBtn.onclick = callbacks.onPrev;
 
 	const yearDisplay = yearWrapper.createEl("span", {
@@ -53,20 +54,20 @@ export function renderYearlyPlannerHeader(
 	yearDisplay.onclick = () => {
 		new YearInputModal(ctx.app, ctx.year, callbacks.onYearClick).open();
 	};
-	yearDisplay.title = "Click to enter year";
+	yearDisplay.title = t("header.clickToEnterYear");
 
 	const nextBtn = yearWrapper.createEl("button", {
 		cls: "yearly-planner-year-btn",
 	});
 	setIcon(nextBtn, "chevron-right");
-	nextBtn.ariaLabel = "Next year";
+	nextBtn.ariaLabel = t("header.nextYear");
 	nextBtn.onclick = callbacks.onNext;
 
 	const todayBtn = yearWrapper.createEl("button", {
 		cls: "yearly-planner-year-btn",
 	});
 	setIcon(todayBtn, "calendar");
-	todayBtn.ariaLabel = "Go to current year";
+	todayBtn.ariaLabel = t("header.goToCurrentYear");
 	todayBtn.onclick = callbacks.onToday;
 
 	if (callbacks.onAddFile) {
@@ -74,7 +75,7 @@ export function renderYearlyPlannerHeader(
 			cls: "yearly-planner-year-btn",
 		});
 		setIcon(addFileBtn, "file-plus");
-		addFileBtn.ariaLabel = "Add file";
+		addFileBtn.ariaLabel = t("header.addFile");
 		addFileBtn.onclick = callbacks.onAddFile;
 	}
 }
@@ -85,7 +86,7 @@ export interface CreateCellContext {
 	folder: string;
 	dragState: DragState | null;
 	holidaysData: HolidayData | null;
-	monthLabels: string;
+	locale: string;
 	rangeStackMap: Map<string, number>;
 }
 
@@ -206,9 +207,7 @@ export function createPlannerCell(
 
 	if (isValid && (isSaturday || isSunday)) {
 		const weekendLabels =
-			ctx.monthLabels === "korean"
-				? WEEKEND_LABELS_KO
-				: WEEKEND_LABELS_EN;
+			ctx.locale === "ko" ? WEEKEND_LABELS_KO : WEEKEND_LABELS_EN;
 		const label = isSaturday ? weekendLabels.sat : weekendLabels.sun;
 		const labelEl = cell.createSpan({
 			cls: "yearly-planner-weekend-label",
@@ -220,8 +219,6 @@ export function createPlannerCell(
 	return cell;
 }
 
-export function getMonthLabels(monthLabelsSetting: string): readonly string[] {
-	return monthLabelsSetting === "korean"
-		? [...MONTH_LABELS_KO]
-		: [...MONTH_LABELS_EN];
+export function getMonthLabels(locale: string): readonly string[] {
+	return locale === "ko" ? [...MONTH_LABELS_KO] : [...MONTH_LABELS_EN];
 }

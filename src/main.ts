@@ -1,4 +1,5 @@
 import { Plugin } from "obsidian";
+import { setLocale, t } from "./i18n";
 import {
 	DEFAULT_SETTINGS,
 	DiaryObsidianSettings,
@@ -12,19 +13,24 @@ export default class DiaryObsidian extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+		setLocale(this.settings.locale ?? "en");
 
 		this.registerView(
 			VIEW_TYPE_YEARLY_PLANNER,
 			(leaf) => new YearlyPlannerView(leaf, this),
 		);
 
-		this.addRibbonIcon("calendar-range", "Open yearly planner", () => {
-			void this.activateYearlyPlanner();
-		});
+		this.addRibbonIcon(
+			"calendar-range",
+			t("ribbon.openYearlyPlanner"),
+			() => {
+				void this.activateYearlyPlanner();
+			},
+		);
 
 		this.addCommand({
 			id: "open-yearly-planner",
-			name: "Open yearly planner",
+			name: t("command.openYearlyPlanner"),
 			callback: () => void this.activateYearlyPlanner(),
 		});
 
@@ -44,10 +50,7 @@ export default class DiaryObsidian extends Plugin {
 			this.app.vault.on("rename", debouncedRefreshYearlyPlanner),
 		);
 		this.registerEvent(
-			this.app.metadataCache.on(
-				"changed",
-				debouncedRefreshYearlyPlanner,
-			),
+			this.app.metadataCache.on("changed", debouncedRefreshYearlyPlanner),
 		);
 	}
 
@@ -73,6 +76,7 @@ export default class DiaryObsidian extends Plugin {
 	}
 
 	async saveSettings() {
+		setLocale(this.settings.locale ?? "en");
 		await this.saveData(this.settings);
 		this.refreshYearlyPlannerViews();
 	}

@@ -1,15 +1,13 @@
 import { App, Platform, TFile, WorkspaceLeaf } from "obsidian";
-import {
-	getTopmostPlannerElementAt,
-	getCellAtClientPos,
-} from "./dom";
+import { getTopmostPlannerElementAt, getCellAtClientPos } from "./dom";
 import {
 	getSelectionBounds,
 	countSelectionCells,
 	isDateInSelection,
 } from "./selection";
-import { CreateRangeModal, HolidayInfoModal } from "./modals";
-import type { DragState } from "./types";
+import { HolidayInfoModal } from "./modals";
+import type { DragState, SelectionBounds } from "./types";
+import { getFilesForDate } from "./file-utils";
 
 export interface YearlyPlannerViewDelegate {
 	readonly contentEl: HTMLElement;
@@ -18,22 +16,8 @@ export interface YearlyPlannerViewDelegate {
 	dragState: DragState | null;
 	render(): void;
 	openDateNote(year: number, month: number, day: number): Promise<void>;
-	createRangeFile(
-		startYear: number,
-		startMonth: number,
-		startDay: number,
-		endYear: number,
-		endMonth: number,
-		endDay: number,
-	): Promise<TFile>;
-	getRangeFilePath(
-		startYear: number,
-		startMonth: number,
-		startDay: number,
-		endYear: number,
-		endMonth: number,
-		endDay: number,
-	): string;
+	openCreateFileModal(bounds: SelectionBounds | null): void;
+	openFileOptionsModal(file: TFile): void;
 }
 
 export class PlannerInteractionHandler {
@@ -42,6 +26,7 @@ export class PlannerInteractionHandler {
 	private boundHandleMouseUp: () => void;
 	private boundHandleTouchMove: (e: TouchEvent) => void;
 	private boundHandleTouchEnd: () => void;
+	private touchStartPos: { x: number; y: number } | null = null;
 
 	constructor(view: YearlyPlannerViewDelegate) {
 		this.view = view;
@@ -79,7 +64,7 @@ export class PlannerInteractionHandler {
 				e.stopImmediatePropagation?.();
 				const file = this.view.app.vault.getAbstractFileByPath(path);
 				if (file instanceof TFile) {
-					void this.view.leaf.openFile(file);
+					this.view.openFileOptionsModal(file);
 				}
 			}
 			return;
@@ -90,7 +75,8 @@ export class PlannerInteractionHandler {
 		);
 		if (holidayBadge) {
 			const dateStr = (holidayBadge as HTMLElement).dataset.holidayDate;
-			const namesJson = (holidayBadge as HTMLElement).dataset.holidayNames;
+			const namesJson = (holidayBadge as HTMLElement).dataset
+				.holidayNames;
 			if (dateStr) {
 				e.preventDefault();
 				e.stopPropagation();
@@ -117,7 +103,7 @@ export class PlannerInteractionHandler {
 				e.stopImmediatePropagation?.();
 				const file = this.view.app.vault.getAbstractFileByPath(path);
 				if (file instanceof TFile) {
-					void this.view.leaf.openFile(file);
+					this.view.openFileOptionsModal(file);
 				}
 			}
 			return;
@@ -128,10 +114,7 @@ export class PlannerInteractionHandler {
 		);
 		if (cell) {
 			if (Platform.isMobile) return;
-			const year = parseInt(
-				(cell as HTMLElement).dataset.year ?? "",
-				10,
-			);
+			const year = parseInt((cell as HTMLElement).dataset.year ?? "", 10);
 			const month = parseInt(
 				(cell as HTMLElement).dataset.month ?? "",
 				10,
@@ -141,7 +124,27 @@ export class PlannerInteractionHandler {
 			e.stopPropagation();
 			e.stopImmediatePropagation?.();
 			if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-				void this.view.openDateNote(year, month, day);
+				const { singleFiles, rangeFiles } = getFilesForDate(
+					this.view.app,
+					year,
+					month,
+					day,
+				);
+				const isEmpty =
+					singleFiles.length === 0 && rangeFiles.length === 0;
+				if (isEmpty) {
+					const bounds: SelectionBounds = {
+						startYear: year,
+						startMonth: month,
+						startDay: day,
+						endYear: year,
+						endMonth: month,
+						endDay: day,
+					};
+					this.view.openCreateFileModal(bounds);
+				} else {
+					void this.view.openDateNote(year, month, day);
+				}
 			}
 		}
 	}
@@ -153,10 +156,17 @@ export class PlannerInteractionHandler {
 	}
 
 	handlePlannerTouchStart(e: TouchEvent): void {
-		if (Platform.isMobile) return;
 		const t = e.touches[0];
 		if (e.touches.length === 1 && t) {
-			this.maybeStartDrag(t.clientX, t.clientY, e as unknown as MouseEvent);
+			if (Platform.isMobile) {
+				this.touchStartPos = { x: t.clientX, y: t.clientY };
+				return;
+			}
+			this.maybeStartDrag(
+				t.clientX,
+				t.clientY,
+				e as unknown as MouseEvent,
+			);
 		}
 	}
 
@@ -164,8 +174,25 @@ export class PlannerInteractionHandler {
 		if (this.view.dragState) return;
 		const t = e.changedTouches[0];
 		if (!t) return;
+
+		if (Platform.isMobile && this.touchStartPos) {
+			const dx = t.clientX - this.touchStartPos.x;
+			const dy = t.clientY - this.touchStartPos.y;
+			const dist = Math.sqrt(dx * dx + dy * dy);
+			this.touchStartPos = null;
+			if (dist > 15) return;
+		}
+
 		e.preventDefault();
-		this.handlePlannerClickAt(t.clientX, t.clientY, e as unknown as MouseEvent);
+		this.handlePlannerClickAt(
+			t.clientX,
+			t.clientY,
+			e as unknown as MouseEvent,
+		);
+	}
+
+	handlePlannerTouchCancel(): void {
+		this.touchStartPos = null;
 	}
 
 	maybeStartDrag(clientX: number, clientY: number, e: MouseEvent): void {
@@ -186,10 +213,7 @@ export class PlannerInteractionHandler {
 			"td[data-year][data-month][data-day]:not(.yearly-planner-cell-invalid)",
 		);
 		if (cell) {
-			const year = parseInt(
-				(cell as HTMLElement).dataset.year ?? "",
-				10,
-			);
+			const year = parseInt((cell as HTMLElement).dataset.year ?? "", 10);
 			const month = parseInt(
 				(cell as HTMLElement).dataset.month ?? "",
 				10,
@@ -267,18 +291,29 @@ export class PlannerInteractionHandler {
 		this.view.render();
 
 		if (count <= 1 || !bounds) {
-			if (count === 1) {
-				void this.view.openDateNote(startYear, startMonth, startDay);
+			if (count === 1 && bounds) {
+				const { singleFiles, rangeFiles } = getFilesForDate(
+					this.view.app,
+					startYear,
+					startMonth,
+					startDay,
+				);
+				const isEmpty =
+					singleFiles.length === 0 && rangeFiles.length === 0;
+				if (isEmpty) {
+					this.view.openCreateFileModal(bounds);
+				} else {
+					void this.view.openDateNote(
+						startYear,
+						startMonth,
+						startDay,
+					);
+				}
 			}
 			return;
 		}
 
-		new CreateRangeModal(
-			this.view.app,
-			bounds,
-			this.view.createRangeFile.bind(this.view),
-			() => this.view.render(),
-		).open();
+		this.view.openCreateFileModal(bounds);
 	}
 
 	private updateSelectionHighlight(): void {

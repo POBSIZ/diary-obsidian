@@ -24,5 +24,3 @@ export interface SelectionBounds {
 	endMonth: number;
 	endDay: number;
 }
-
-export type CreateRangeModalBounds = SelectionBounds;

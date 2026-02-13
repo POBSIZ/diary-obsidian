@@ -22,7 +22,7 @@ export async function openDateNote(
 			await app.vault.createFolder(dir);
 		}
 		const dateStr = `${year}-${pad(month)}-${pad(day)}`;
-		const content = `## ${dateStr}\n\n`;
+		const content = `# ${dateStr}\n\n`;
 		const newFile = await app.vault.create(path, content);
 		await leaf.openFile(newFile);
 	}
@@ -58,7 +58,9 @@ export async function createRangeFile(
 	}
 	const startStr = `${startYear}-${pad(startMonth)}-${pad(startDay)}`;
 	const endStr = `${endYear}-${pad(endMonth)}-${pad(endDay)}`;
-	const colorLine = color?.trim() ? `color: "${color.trim().replace(/"/g, '\\"')}"\n` : "";
+	const colorLine = color?.trim()
+		? `color: "${color.trim().replace(/"/g, '\\"')}"\n`
+		: "";
 	const content = `---
 date_start: ${startStr}
 date_end: ${endStr}
@@ -98,9 +100,8 @@ export async function createSingleDateFile(
 		await app.vault.createFolder(dir);
 	}
 	const dateStr = extractDateFromBasename(cleanBasename) ?? cleanBasename;
-	const colorBlock =
-		color?.trim() ?
-			`---
+	const colorBlock = color?.trim()
+		? `---
 color: "${color.trim().replace(/"/g, '\\"')}"
 ---
 
@@ -108,4 +109,24 @@ color: "${color.trim().replace(/"/g, '\\"')}"
 		: "";
 	const content = `${colorBlock}## ${dateStr}\n\n`;
 	return app.vault.create(path, content);
+}
+
+/**
+ * Update the color in a file's frontmatter.
+ * Uses app.fileManager.processFrontMatter (Obsidian 1.4.4+) to avoid parsing/serialization issues.
+ * @param color - New color (hex/rgb/name). If undefined/empty, removes color from frontmatter.
+ */
+export async function updateFileColor(
+	app: App,
+	file: TFile,
+	color: string | undefined,
+): Promise<void> {
+	const trimmed = color?.trim();
+	await app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
+		if (trimmed) {
+			frontmatter.color = trimmed;
+		} else {
+			delete frontmatter.color;
+		}
+	});
 }

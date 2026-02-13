@@ -1,6 +1,8 @@
-import { App, Modal, Notice, TFile } from "obsidian";
-import { getAllFolderPaths } from "./file-utils";
-import type { CreateRangeModalBounds, SelectionBounds } from "./types";
+import { App, Modal, Notice, TFile, WorkspaceLeaf } from "obsidian";
+import { getLocale, t } from "../../i18n";
+import { getAllFolderPaths, getChipColor } from "./file-utils";
+import { updateFileColor } from "./file-operations";
+import type { SelectionBounds } from "./types";
 
 /** Chip color presets for CreateFileModal. */
 const CHIP_COLOR_PRESETS: readonly { hex: string }[] = [
@@ -31,15 +33,6 @@ export type CreateSingleDateFileWithFolderFn = (
 	color?: string,
 ) => Promise<TFile>;
 
-export type CreateRangeFileFn = (
-	startYear: number,
-	startMonth: number,
-	startDay: number,
-	endYear: number,
-	endMonth: number,
-	endDay: number,
-) => Promise<TFile>;
-
 export type CreateRangeFileWithFolderFn = (
 	folder: string,
 	startYear: number,
@@ -51,65 +44,23 @@ export type CreateRangeFileWithFolderFn = (
 	color?: string,
 ) => Promise<TFile>;
 
-export class CreateRangeModal extends Modal {
-	constructor(
-		app: App,
-		private bounds: CreateRangeModalBounds,
-		private createRangeFile: CreateRangeFileFn,
-		private onCreated: () => void,
-	) {
-		super(app);
-	}
-
-	onOpen(): void {
-		this.contentEl.addClass("yearly-planner-modal-content");
-		const pad = (n: number) => String(n).padStart(2, "0");
-		const startStr = `${this.bounds.startYear}-${pad(this.bounds.startMonth)}-${pad(this.bounds.startDay)}`;
-		const endStr = `${this.bounds.endYear}-${pad(this.bounds.endMonth)}-${pad(this.bounds.endDay)}`;
-
-		this.contentEl.createEl("h2", {
-			text: "Create range note",
-		});
-		this.contentEl.createEl("p", {
-			cls: "yearly-planner-range-modal-dates",
-			text: `${startStr} ~ ${endStr}`,
-		});
-
-		const btn = this.contentEl.createEl("button", {
-			text: "Create",
-			cls: "mod-cta",
-		});
-		btn.onclick = async () => {
-			try {
-				const file = await this.createRangeFile(
-					this.bounds.startYear,
-					this.bounds.startMonth,
-					this.bounds.startDay,
-					this.bounds.endYear,
-					this.bounds.endMonth,
-					this.bounds.endDay,
-				);
-				this.onCreated();
-				this.close();
-				void this.app.workspace.getLeaf().openFile(file);
-			} catch (err) {
-				const msg =
-					err instanceof Error
-						? err.message
-						: "Failed to create file";
-				new Notice(msg);
-			}
-		};
-	}
-}
-
 function formatHolidayDate(dateStr: string): string {
 	const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 	if (!m) return dateStr;
 	const [, y, month, day] = m;
 	const monthNum = parseInt(month ?? "1", 10);
 	const dayNum = parseInt(day ?? "1", 10);
-	return `${y}년 ${monthNum}월 ${dayNum}일`;
+	return getLocale() === "ko"
+		? t("dateFormat.ko", {
+				year: y ?? "",
+				month: monthNum,
+				day: dayNum,
+			})
+		: t("dateFormat.en", {
+				year: y ?? "",
+				month: monthNum,
+				day: dayNum,
+			});
 }
 
 export class HolidayInfoModal extends Modal {
@@ -123,7 +74,7 @@ export class HolidayInfoModal extends Modal {
 
 	onOpen(): void {
 		this.contentEl.addClass("yearly-planner-modal-content");
-		this.contentEl.createEl("h2", { text: "연휴" });
+		this.contentEl.createEl("h2", { text: t("modal.holidayTitle") });
 		this.contentEl.createEl("p", {
 			cls: "yearly-planner-holiday-modal-date",
 			text: formatHolidayDate(this.dateStr),
@@ -225,7 +176,7 @@ export class CreateFileModal extends Modal {
 			endStr = startStr;
 		}
 
-		this.contentEl.createEl("h2", { text: "Create file" });
+		this.contentEl.createEl("h2", { text: t("modal.createFile") });
 
 		const form = this.contentEl.createDiv({
 			cls: "yearly-planner-create-file-modal",
@@ -234,14 +185,17 @@ export class CreateFileModal extends Modal {
 		const modeRow = form.createDiv({
 			cls: "yearly-planner-create-file-row",
 		});
-		modeRow.createEl("label", { text: "Mode" });
-		this.singleModeBtn = modeRow.createEl("button", {
-			cls: "yearly-planner-mode-btn",
-			text: "단일 날짜",
+		modeRow.createEl("label", { text: t("modal.mode") });
+		const modeBtnsWrap = modeRow.createDiv({
+			cls: "yearly-planner-mode-btns",
 		});
-		this.rangeModeBtn = modeRow.createEl("button", {
+		this.singleModeBtn = modeBtnsWrap.createEl("button", {
 			cls: "yearly-planner-mode-btn",
-			text: "범위",
+			text: t("modal.singleDate"),
+		});
+		this.rangeModeBtn = modeBtnsWrap.createEl("button", {
+			cls: "yearly-planner-mode-btn",
+			text: t("modal.range"),
 		});
 		this.singleModeBtn.onclick = () => this.setMode("single");
 		this.rangeModeBtn.onclick = () => this.setMode("range");
@@ -251,7 +205,7 @@ export class CreateFileModal extends Modal {
 		const folderRow = form.createDiv({
 			cls: "yearly-planner-create-file-row",
 		});
-		folderRow.createEl("label", { text: "Folder" });
+		folderRow.createEl("label", { text: t("modal.folder") });
 		const folderPaths = getAllFolderPaths(this.app);
 		const hasDefault =
 			defaultFolder && folderPaths.includes(defaultFolder.trim());
@@ -265,12 +219,12 @@ export class CreateFileModal extends Modal {
 		for (const path of folderPaths) {
 			this.folderSelect.createEl("option", {
 				value: path,
-				text: path || "(root)",
+				text: path || t("modal.root"),
 			});
 		}
 		this.folderSelect.createEl("option", {
 			value: FOLDER_OTHER,
-			text: "Other...",
+			text: t("modal.other"),
 		});
 		const targetFolder = defaultFolder?.trim() || "Planner";
 		const idx = folderPaths.indexOf(targetFolder);
@@ -286,19 +240,21 @@ export class CreateFileModal extends Modal {
 		this.folderOtherRow = form.createDiv({
 			cls: "yearly-planner-create-file-row yearly-planner-folder-other-row",
 		});
-		this.folderOtherRow.createEl("label", { text: "Custom folder path" });
+		this.folderOtherRow.createEl("label", {
+			text: t("modal.customFolderPath"),
+		});
 		this.folderCustomInput = this.folderOtherRow.createEl("input", {
 			type: "text",
 			cls: "yearly-planner-folder-input",
 		});
-		this.folderCustomInput.placeholder = "Planner";
+		this.folderCustomInput.placeholder = "Planner"; /* Default folder name */
 		this.folderCustomInput.value = defaultFolder || "";
 		this.updateFolderOtherVisibility();
 
 		const startRow = form.createDiv({
 			cls: "yearly-planner-create-file-row",
 		});
-		startRow.createEl("label", { text: "Start date" });
+		startRow.createEl("label", { text: t("modal.startDate") });
 		this.startDateInput = startRow.createEl("input", {
 			type: "date",
 			cls: "yearly-planner-date-input",
@@ -309,7 +265,7 @@ export class CreateFileModal extends Modal {
 		this.rangeRow = form.createDiv({
 			cls: "yearly-planner-create-file-row",
 		});
-		this.rangeRow.createEl("label", { text: "End date" });
+		this.rangeRow.createEl("label", { text: t("modal.endDate") });
 		this.endDateInput = this.rangeRow.createEl("input", {
 			type: "date",
 			cls: "yearly-planner-date-input",
@@ -320,13 +276,12 @@ export class CreateFileModal extends Modal {
 		const filenameRow = form.createDiv({
 			cls: "yearly-planner-create-file-row",
 		});
-		filenameRow.createEl("label", { text: "File name" });
+		filenameRow.createEl("label", { text: t("modal.fileName") });
 		this.filenameInput = filenameRow.createEl("input", {
 			type: "text",
 			cls: "yearly-planner-filename-input",
 		});
-		this.filenameInput.placeholder =
-			"YYYY-MM-DD or YYYY-MM-DD-suffix"; /* eslint-disable-line obsidianmd/ui/sentence-case -- Format hint */
+		this.filenameInput.placeholder = t("modal.fileNamePlaceholder");
 		this.filenameInput.oninput = () => {
 			if (this.mode === "range") this.syncDatesFromFilename();
 		};
@@ -334,7 +289,7 @@ export class CreateFileModal extends Modal {
 		const colorRow = form.createDiv({
 			cls: "yearly-planner-create-file-row",
 		});
-		colorRow.createEl("label", { text: "Color" });
+		colorRow.createEl("label", { text: t("modal.color") });
 		const colorPresetsWrap = colorRow.createDiv({
 			cls: "yearly-planner-color-row",
 		});
@@ -357,7 +312,7 @@ export class CreateFileModal extends Modal {
 			cls: "yearly-planner-color-picker",
 		});
 		this.colorPickerInput.value = "#22c55e";
-		this.colorPickerInput.title = "Pick color";
+		this.colorPickerInput.title = t("modal.pickColor");
 		this.colorPickerInput.oninput = () => {
 			this.colorInput.value = this.colorPickerInput.value;
 			this.updateColorPresetActive();
@@ -367,14 +322,14 @@ export class CreateFileModal extends Modal {
 			cls: "yearly-planner-filename-input",
 		});
 		this.colorInput.placeholder = "#22c55e";
-		this.colorInput.title = "Chip color (hex, rgb, or color name)";
+		this.colorInput.title = t("modal.chipColorTitle");
 		this.colorInput.oninput = () => this.syncColorFromText();
 
 		this.syncFilename();
 		this.updateModeUI();
 
 		const btn = this.contentEl.createEl("button", {
-			text: "Create",
+			text: t("modal.create"),
 			cls: "mod-cta",
 		});
 		btn.onclick = () => void this.handleCreate();
@@ -507,7 +462,7 @@ export class CreateFileModal extends Modal {
 			}
 		} catch (err) {
 			const msg =
-				err instanceof Error ? err.message : "Failed to create file";
+				err instanceof Error ? err.message : t("modal.failedToCreateFile");
 			new Notice(msg);
 		}
 	}
@@ -521,7 +476,7 @@ export class YearInputModal extends Modal {
 	) {
 		super(app);
 		this.contentEl.addClass("yearly-planner-modal-content");
-		this.contentEl.createEl("h2", { text: "Enter year" });
+		this.contentEl.createEl("h2", { text: t("modal.enterYear") });
 		const form = this.contentEl.createDiv({
 			cls: "yearly-planner-year-modal",
 		});
@@ -534,7 +489,10 @@ export class YearInputModal extends Modal {
 		input.max = "2100";
 		input.placeholder = "1900-2100";
 
-		const btn = form.createEl("button", { text: "Apply", cls: "mod-cta" });
+		const btn = form.createEl("button", {
+			text: t("modal.apply"),
+			cls: "mod-cta",
+		});
 		btn.onclick = () => {
 			const val = parseInt(input.value, 10);
 			if (!isNaN(val) && val >= 1900 && val <= 2100) {
@@ -542,5 +500,179 @@ export class YearInputModal extends Modal {
 				this.close();
 			}
 		};
+	}
+}
+
+export class DeleteConfirmModal extends Modal {
+	constructor(
+		app: App,
+		private titleText: string,
+		private desc: string,
+		private onConfirm: () => void,
+	) {
+		super(app);
+	}
+
+	onOpen(): void {
+		this.contentEl.addClass("yearly-planner-modal-content");
+		this.contentEl.createEl("h2", { text: this.titleText });
+		this.contentEl.createEl("p", {
+			cls: "yearly-planner-delete-desc",
+			text: this.desc,
+		});
+		const btnRow = this.contentEl.createDiv({
+			cls: "yearly-planner-modal-buttons",
+		});
+		const cancelBtn = btnRow.createEl("button", { text: t("modal.cancel") });
+		cancelBtn.onclick = () => this.close();
+		const deleteBtn = btnRow.createEl("button", {
+			text: t("modal.delete"),
+			cls: "mod-danger",
+		});
+		deleteBtn.onclick = () => {
+			this.onConfirm();
+			this.close();
+		};
+	}
+}
+
+export class FileOptionsModal extends Modal {
+	private colorInput!: HTMLInputElement;
+	private colorPickerInput!: HTMLInputElement;
+	private colorPresetBtns: HTMLButtonElement[] = [];
+
+	constructor(
+		app: App,
+		private file: TFile,
+		private leaf: WorkspaceLeaf,
+		private onClosed: () => void,
+	) {
+		super(app);
+	}
+
+	onOpen(): void {
+		this.contentEl.addClass("yearly-planner-modal-content");
+		this.contentEl.createEl("h2", { text: t("modal.fileOptions") });
+
+		const titleEl = this.contentEl.createEl("p", {
+			cls: "yearly-planner-file-options-title",
+		});
+		titleEl.createEl("strong", { text: this.file.basename });
+		titleEl.appendText(` (${this.file.path})`);
+
+		const colorRow = this.contentEl.createDiv({
+			cls: "yearly-planner-create-file-row",
+		});
+		colorRow.createEl("label", { text: t("modal.color") });
+		const colorPresetsWrap = colorRow.createDiv({
+			cls: "yearly-planner-color-row",
+		});
+		const presetsEl = colorPresetsWrap.createDiv({
+			cls: "yearly-planner-color-presets",
+		});
+		const currentColor =
+			getChipColor(this.app, this.file) ?? CHIP_COLOR_PRESETS[1]?.hex ?? "#22c55e";
+		CHIP_COLOR_PRESETS.forEach((preset) => {
+			const btn = presetsEl.createEl("button", {
+				cls: "yearly-planner-color-preset-btn",
+				attr: { type: "button" },
+			});
+			btn.style.backgroundColor = preset.hex;
+			btn.ariaLabel = preset.hex;
+			btn.title = preset.hex;
+			btn.onclick = () => this.setColorFromPreset(preset.hex);
+			this.colorPresetBtns.push(btn);
+		});
+		this.colorPickerInput = colorPresetsWrap.createEl("input", {
+			type: "color",
+			cls: "yearly-planner-color-picker",
+		});
+		this.colorPickerInput.value =
+			toHex6(currentColor) ?? currentColor ?? "#22c55e";
+		this.colorPickerInput.title = t("modal.pickColor");
+		this.colorPickerInput.oninput = () => {
+			this.colorInput.value = this.colorPickerInput.value;
+			this.updateColorPresetActive();
+		};
+		this.colorInput = colorRow.createEl("input", {
+			type: "text",
+			cls: "yearly-planner-filename-input",
+		});
+		this.colorInput.value = currentColor;
+		this.colorInput.placeholder = "#22c55e";
+		this.colorInput.title = t("modal.chipColorTitle");
+		this.colorInput.oninput = () => this.syncColorFromText();
+		this.updateColorPresetActive();
+
+		const btnRow = this.contentEl.createDiv({
+			cls: "yearly-planner-file-options-buttons",
+		});
+		const openBtn = btnRow.createEl("button", {
+			text: t("modal.openFile"),
+			cls: "mod-cta",
+		});
+		openBtn.onclick = () => {
+			void this.leaf.openFile(this.file);
+			this.close();
+		};
+		const applyBtn = btnRow.createEl("button", {
+			text: t("modal.applyColor"),
+		});
+		applyBtn.onclick = () => void this.handleApplyColor();
+		const deleteBtn = btnRow.createEl("button", {
+			text: t("modal.delete"),
+			cls: "mod-danger",
+		});
+		deleteBtn.onclick = () => this.handleDelete();
+	}
+
+	private setColorFromPreset(hex: string): void {
+		this.colorInput.value = hex;
+		this.colorPickerInput.value = toHex6(hex) ?? hex;
+		this.updateColorPresetActive();
+	}
+
+	private syncColorFromText(): void {
+		const hex = toHex6(this.colorInput.value.trim());
+		if (hex) {
+			this.colorPickerInput.value = hex;
+		}
+		this.updateColorPresetActive();
+	}
+
+	private updateColorPresetActive(): void {
+		const val = this.colorInput.value.trim().toLowerCase();
+		CHIP_COLOR_PRESETS.forEach((preset, i) => {
+			const btn = this.colorPresetBtns[i];
+			btn?.toggleClass("is-active", val === preset.hex.toLowerCase());
+		});
+	}
+
+	private async handleApplyColor(): Promise<void> {
+		const color = this.colorInput.value.trim() || undefined;
+		try {
+			await updateFileColor(this.app, this.file, color);
+			this.onClosed();
+			this.close();
+		} catch (err) {
+			const msg =
+				err instanceof Error ? err.message : t("modal.failedToCreateFile");
+			new Notice(msg);
+		}
+	}
+
+	private handleDelete(): void {
+		new DeleteConfirmModal(
+			this.app,
+			t("modal.deleteConfirm"),
+			t("modal.deleteConfirmDesc", { path: this.file.path }),
+			() => {
+				void (async () => {
+					await this.app.fileManager.trashFile(this.file);
+					this.close();
+					this.onClosed();
+				})();
+			},
+		).open();
 	}
 }

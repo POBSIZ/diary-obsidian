@@ -1,8 +1,9 @@
 import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
+import { t } from "../../i18n";
 import DiaryObsidian from "../../main";
 import { VIEW_TYPE_YEARLY_PLANNER } from "../../constants";
-import type { YearlyPlannerState, DragState } from "./types";
-import { getRangeFilePath, getRangeStackIndexMap } from "./file-utils";
+import type { YearlyPlannerState, DragState, SelectionBounds } from "./types";
+import { getRangeStackIndexMap } from "./file-utils";
 import {
 	renderYearlyPlannerHeader,
 	createPlannerCell,
@@ -17,7 +18,7 @@ import {
 	PlannerInteractionHandler,
 	type YearlyPlannerViewDelegate,
 } from "./interactions";
-import { CreateFileModal } from "./modals";
+import { CreateFileModal, FileOptionsModal } from "./modals";
 import { getSelectionBounds } from "./selection";
 import { getHolidaysForYear } from "../../utils/holidays";
 
@@ -46,7 +47,7 @@ export class YearlyPlannerView
 	}
 
 	getDisplayText(): string {
-		return `Yearly Planner ${this.year}`;
+		return t("view.displayText", { year: this.year });
 	}
 
 	getState(): YearlyPlannerState {
@@ -89,15 +90,10 @@ export class YearlyPlannerView
 				"--yearly-planner-mobile-cell-width",
 				`${cellWidth}rem`,
 			);
-			contentEl.style.setProperty(
-				"--yearly-planner-mobile-day-width",
-				`${(cellWidth * 0.611).toFixed(2)}rem`,
-			);
 		} else {
 			contentEl.style.removeProperty(
 				"--yearly-planner-mobile-cell-width",
 			);
-			contentEl.style.removeProperty("--yearly-planner-mobile-day-width");
 		}
 
 		this.renderHeader(contentEl);
@@ -105,12 +101,12 @@ export class YearlyPlannerView
 	}
 
 	private renderHeader(contentEl: HTMLElement): void {
-		const monthLabels = getMonthLabels(this.plugin.settings.monthLabels);
+		const locale = this.plugin.settings.locale ?? "en";
 		renderYearlyPlannerHeader(
 			contentEl,
 			{
 				year: this.year,
-				monthLabels,
+				monthLabels: getMonthLabels(locale),
 				app: this.app,
 			},
 			{
@@ -135,22 +131,9 @@ export class YearlyPlannerView
 					this.render();
 				},
 				onAddFile: () => {
-					const defaultFolder =
-						this.plugin.settings.plannerFolder || "Planner";
-					new CreateFileModal(this.app, {
-						bounds: getSelectionBounds(this.dragState),
-						defaultFolder,
-						createSingleDateFile: (folder, basename, color) =>
-							createSingleDateFileOp(
-								this.app,
-								folder,
-								basename,
-								color,
-							),
-						createRangeFile: (folder, ...args) =>
-							createRangeFileOp(this.app, folder, ...args),
-						onCreated: () => this.render(),
-					}).open();
+					this.openCreateFileModal(
+						getSelectionBounds(this.dragState),
+					);
 				},
 			},
 		);
@@ -174,11 +157,18 @@ export class YearlyPlannerView
 			),
 			{ capture: true, passive: false },
 		);
+		scrollContainer.addEventListener(
+			"touchcancel",
+			this.interactionHandler.handlePlannerTouchCancel.bind(
+				this.interactionHandler,
+			),
+			{ capture: true },
+		);
 		const table = scrollContainer.createEl("table", {
 			cls: "yearly-planner-table",
 		});
 
-		const monthLabels = getMonthLabels(this.plugin.settings.monthLabels);
+		const monthLabels = getMonthLabels(this.plugin.settings.locale ?? "en");
 		const thead = table.createEl("thead");
 		const headerRow = thead.createEl("tr");
 		headerRow.createEl("th", { cls: "yearly-planner-corner" });
@@ -200,7 +190,7 @@ export class YearlyPlannerView
 			folder,
 			dragState: this.dragState,
 			holidaysData,
-			monthLabels: this.plugin.settings.monthLabels,
+			locale: this.plugin.settings.locale ?? "en",
 			rangeStackMap,
 		};
 
@@ -236,44 +226,22 @@ export class YearlyPlannerView
 		await openDateNoteOp(this.app, this.leaf, folder, year, month, day);
 	}
 
-	getRangeFilePath(
-		startYear: number,
-		startMonth: number,
-		startDay: number,
-		endYear: number,
-		endMonth: number,
-		endDay: number,
-	): string {
-		const folder = this.plugin.settings.plannerFolder || "Planner";
-		return getRangeFilePath(
-			folder,
-			startYear,
-			startMonth,
-			startDay,
-			endYear,
-			endMonth,
-			endDay,
-		);
+	openCreateFileModal(bounds: SelectionBounds | null): void {
+		const defaultFolder = this.plugin.settings.plannerFolder || "Planner";
+		new CreateFileModal(this.app, {
+			bounds,
+			defaultFolder,
+			createSingleDateFile: (folder, basename, color) =>
+				createSingleDateFileOp(this.app, folder, basename, color),
+			createRangeFile: (folder, ...args) =>
+				createRangeFileOp(this.app, folder, ...args),
+			onCreated: () => this.render(),
+		}).open();
 	}
 
-	async createRangeFile(
-		startYear: number,
-		startMonth: number,
-		startDay: number,
-		endYear: number,
-		endMonth: number,
-		endDay: number,
-	): Promise<TFile> {
-		const folder = this.plugin.settings.plannerFolder || "Planner";
-		return createRangeFileOp(
-			this.app,
-			folder,
-			startYear,
-			startMonth,
-			startDay,
-			endYear,
-			endMonth,
-			endDay,
-		);
+	openFileOptionsModal(file: TFile): void {
+		new FileOptionsModal(this.app, file, this.leaf, () =>
+			this.render(),
+		).open();
 	}
 }

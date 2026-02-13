@@ -1,13 +1,12 @@
 /* eslint-disable obsidianmd/ui/sentence-case -- Setting names use title case for clarity */
 import { App, PluginSettingTab, Setting } from "obsidian";
+import { setLocale, t } from "./i18n";
 import DiaryObsidian from "./main";
 
-export type MonthLabelType = "korean" | "english";
-
 export interface DiaryObsidianSettings {
+	locale: "en" | "ko";
 	plannerFolder: string;
 	dateFormat: string;
-	monthLabels: MonthLabelType;
 	showHolidays: boolean;
 	holidayCountry: string;
 	/** Mobile only: bottom padding (rem) so table isn't covered by Obsidian tools tab. 0 = use default. */
@@ -17,9 +16,9 @@ export interface DiaryObsidianSettings {
 }
 
 export const DEFAULT_SETTINGS: DiaryObsidianSettings = {
+	locale: "en",
 	plannerFolder: "Planner",
 	dateFormat: "YYYY-MM-DD",
-	monthLabels: "korean",
 	showHolidays: true,
 	holidayCountry: "KR",
 	mobileBottomPadding: 3.5,
@@ -40,8 +39,25 @@ export class DiaryObsidianSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName("Planner folder")
-			.setDesc("Folder for yearly planner date notes")
+			.setName(t("settings.language"))
+			.setDesc(t("settings.languageDesc"))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption("en", "English")
+					.addOption("ko", "한국어")
+					.setValue(this.plugin.settings.locale ?? "en")
+					.onChange(async (value) => {
+						this.plugin.settings.locale =
+							value === "ko" ? "ko" : "en";
+						setLocale(this.plugin.settings.locale);
+						await this.plugin.saveSettings();
+						this.display();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(t("settings.plannerFolder"))
+			.setDesc(t("settings.plannerFolderDesc"))
 			.addText((text) =>
 				text
 					.setPlaceholder("Planner")
@@ -53,8 +69,8 @@ export class DiaryObsidianSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Date format")
-			.setDesc("Filename date format (e.g. 2000-01-15)")
+			.setName(t("settings.dateFormat"))
+			.setDesc(t("settings.dateFormatDesc"))
 			.addText((text) =>
 				text
 					.setPlaceholder("YYYY-MM-DD")
@@ -66,23 +82,8 @@ export class DiaryObsidianSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Month labels")
-			.setDesc("Display format for month headers (1월–12월 or Jan–Dec)")
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOption("korean", "1월–12월")
-					.addOption("english", "Jan–Dec")
-					.setValue(this.plugin.settings.monthLabels)
-					.onChange(async (value) => {
-						this.plugin.settings.monthLabels =
-							value as MonthLabelType;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName("Show holidays")
-			.setDesc("Display public holidays in the yearly planner")
+			.setName(t("settings.showHolidays"))
+			.setDesc(t("settings.showHolidaysDesc"))
 			.addToggle((toggle) =>
 				toggle
 					.setValue(this.plugin.settings.showHolidays)
@@ -93,24 +94,22 @@ export class DiaryObsidianSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Holiday country")
-			.setDesc("Country for holiday display (ISO 3166-1 alpha-2)")
+			.setName(t("settings.holidayCountry"))
+			.setDesc(t("settings.holidayCountryDesc"))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption("", "None")
-					.addOption("KR", "대한민국")
-					.addOption("US", "United States")
-					.addOption("JP", "日本")
-					.addOption("CN", "中国")
-					.addOption("GB", "United Kingdom")
-					.addOption("DE", "Deutschland")
-					.addOption("FR", "France")
-					.addOption("AU", "Australia")
-					.addOption("CA", "Canada")
-					.addOption("TW", "台灣")
-					.setValue(
-						this.plugin.settings.holidayCountry || "",
-					)
+					.addOption("", t("country.none"))
+					.addOption("KR", t("country.KR"))
+					.addOption("US", t("country.US"))
+					.addOption("JP", t("country.JP"))
+					.addOption("CN", t("country.CN"))
+					.addOption("GB", t("country.GB"))
+					.addOption("DE", t("country.DE"))
+					.addOption("FR", t("country.FR"))
+					.addOption("AU", t("country.AU"))
+					.addOption("CA", t("country.CA"))
+					.addOption("TW", t("country.TW"))
+					.setValue(this.plugin.settings.holidayCountry || "")
 					.onChange(async (value) => {
 						this.plugin.settings.holidayCountry = value;
 						await this.plugin.saveSettings();
@@ -118,10 +117,8 @@ export class DiaryObsidianSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Mobile bottom padding")
-			.setDesc(
-				"Padding (rem) at bottom of yearly planner on mobile so the table is not covered by the tools tab. 0 to disable.",
-			)
+			.setName(t("settings.mobileBottomPadding"))
+			.setDesc(t("settings.mobileBottomPaddingDesc"))
 			.addSlider((slider) =>
 				slider
 					.setLimits(0, 8, 0.5)
@@ -134,10 +131,8 @@ export class DiaryObsidianSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Mobile cell width")
-			.setDesc(
-				"Width (rem) of month cells on mobile. 0 to use default (4.5rem / 4rem by breakpoint).",
-			)
+			.setName(t("settings.mobileCellWidth"))
+			.setDesc(t("settings.mobileCellWidthDesc"))
 			.addSlider((slider) =>
 				slider
 					.setLimits(0, 8, 0.25)
