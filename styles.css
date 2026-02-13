@@ -109,9 +109,14 @@ available in the app when your plugin is enabled.
 	display: none;
 }
 
+.yearly-planner-mode-btns {
+	display: flex;
+	flex-direction: row;
+	gap: 0.25rem;
+}
+
 .yearly-planner-mode-btn {
 	padding: 0.35rem 0.75rem;
-	margin-right: 0.25rem;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--input-radius, 4px);
 	background: var(--background-modifier-form-field);
@@ -134,14 +139,37 @@ available in the app when your plugin is enabled.
 .yearly-planner-folder-input,
 .yearly-planner-date-input,
 .yearly-planner-filename-input {
-	width: 100%;
 	box-sizing: border-box;
-	padding: 0.5rem;
+	padding: 0 0.5rem;
 	font-size: 1rem;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--input-radius, 4px);
 	background: var(--background-modifier-form-field);
 	color: var(--text-normal);
+	box-shadow: none;
+}
+
+/* Allow date input to shrink below browser default min-width on narrow modals */
+.yearly-planner-date-input {
+	min-width: 0;
+	max-width: 100%;
+}
+
+.yearly-planner-create-file-modal,
+.yearly-planner-create-file-row {
+	min-width: 0;
+}
+
+/* Create File modal: inputs and Create button share same min-height */
+.yearly-planner-create-file-modal .yearly-planner-folder-select,
+.yearly-planner-create-file-modal .yearly-planner-folder-input,
+.yearly-planner-create-file-modal .yearly-planner-date-input,
+.yearly-planner-create-file-modal .yearly-planner-filename-input {
+	min-height: 2.25rem;
+}
+
+.yearly-planner-modal-content:has(.yearly-planner-create-file-modal) .mod-cta {
+	min-height: 2.25rem;
 }
 
 .yearly-planner-folder-select {
@@ -154,6 +182,8 @@ available in the app when your plugin is enabled.
 	align-items: center;
 	gap: 0.5rem;
 	flex-wrap: wrap;
+	min-width: 0;
+	margin-bottom: 0.25rem;
 }
 
 .yearly-planner-color-presets {
@@ -269,6 +299,8 @@ available in the app when your plugin is enabled.
 	top: 0;
 	left: 0;
 	z-index: 1002;
+	min-width: 2rem;
+	width: 2rem;
 	background-color: var(
 		--background-secondary,
 		var(--background-primary)
@@ -281,6 +313,8 @@ available in the app when your plugin is enabled.
 	position: sticky;
 	left: 0;
 	z-index: 1001;
+	min-width: 2rem;
+	width: 2rem;
 	background-color: var(
 		--background-secondary,
 		var(--background-primary)
@@ -585,6 +619,42 @@ available in the app when your plugin is enabled.
 	opacity: 0.4;
 }
 
+/* Ensure selection highlight visible when overlapping with weekend */
+.yearly-planner-cell-selected.yearly-planner-cell-saturday:not(
+		.yearly-planner-cell-invalid
+	),
+.yearly-planner-cell-selected.yearly-planner-cell-sunday:not(
+		.yearly-planner-cell-invalid
+	),
+.yearly-planner-table
+	tbody
+	tr:nth-child(odd)
+	.yearly-planner-cell-selected.yearly-planner-cell-saturday:not(
+		.yearly-planner-cell-invalid
+	),
+.yearly-planner-table
+	tbody
+	tr:nth-child(odd)
+	.yearly-planner-cell-selected.yearly-planner-cell-sunday:not(
+		.yearly-planner-cell-invalid
+	),
+.yearly-planner-table
+	tbody
+	tr:nth-child(even)
+	.yearly-planner-cell-selected.yearly-planner-cell-saturday:not(
+		.yearly-planner-cell-invalid
+	),
+.yearly-planner-table
+	tbody
+	tr:nth-child(even)
+	.yearly-planner-cell-selected.yearly-planner-cell-sunday:not(
+		.yearly-planner-cell-invalid
+	) {
+	background: var(--interactive-accent) !important;
+	color: var(--text-on-accent, var(--text-normal)) !important;
+	opacity: 0.4;
+}
+
 /* Range bar - connected bar visualization (B) */
 .yearly-planner-range-bar {
 	--range-color: var(--interactive-accent);
@@ -695,8 +765,38 @@ available in the app when your plugin is enabled.
 	margin-top: 1rem;
 }
 
+.yearly-planner-modal-buttons,
+.yearly-planner-file-options-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 1rem;
+}
+
+.yearly-planner-file-options-buttons .mod-cta {
+	margin-top: 0;
+}
+
+.yearly-planner-file-options-title {
+	font-size: 0.9rem;
+	color: var(--text-muted);
+	margin-bottom: 1rem;
+}
+
+.yearly-planner-delete-desc {
+	color: var(--text-muted);
+	font-size: 0.9rem;
+}
+
 /* Mobile: ~768px - larger cells for touch, horizontal scroll */
 @media (max-width: 768px) {
+	/* Prevent date input overflow from causing modal scroll */
+	.modal .yearly-planner-modal-content {
+		overflow-x: hidden;
+		min-width: 0;
+	}
+
 	.yearly-planner-container {
 		padding: 0.5rem;
 	}
@@ -728,12 +828,10 @@ available in the app when your plugin is enabled.
 	.yearly-planner-table {
 		table-layout: fixed;
 		width: calc(
-			var(--yearly-planner-mobile-day-width, 2.75rem) + 12 *
-				var(--yearly-planner-mobile-cell-width, 4.5rem)
+			2.25rem + 12 * var(--yearly-planner-mobile-cell-width, 4.5rem)
 		);
 		min-width: calc(
-			var(--yearly-planner-mobile-day-width, 2.75rem) + 12 *
-				var(--yearly-planner-mobile-cell-width, 4.5rem)
+			2.25rem + 12 * var(--yearly-planner-mobile-cell-width, 4.5rem)
 		);
 	}
 
@@ -753,13 +851,13 @@ available in the app when your plugin is enabled.
 	}
 
 	.yearly-planner-table thead .yearly-planner-corner {
-		min-width: var(--yearly-planner-mobile-day-width, 2.75rem);
-		width: var(--yearly-planner-mobile-day-width, 2.75rem);
+		min-width: 2.25rem;
+		width: 2.25rem;
 	}
 
 	.yearly-planner-table tbody th {
-		min-width: var(--yearly-planner-mobile-day-width, 2.75rem);
-		width: var(--yearly-planner-mobile-day-width, 2.75rem);
+		min-width: 2.25rem;
+		width: 2.25rem;
 	}
 
 	.yearly-planner-table tbody td {
@@ -814,12 +912,10 @@ available in the app when your plugin is enabled.
 	.yearly-planner-table {
 		table-layout: fixed;
 		width: calc(
-			var(--yearly-planner-mobile-day-width, 2.5rem) + 12 *
-				var(--yearly-planner-mobile-cell-width, 4rem)
+			2rem + 12 * var(--yearly-planner-mobile-cell-width, 4rem)
 		);
 		min-width: calc(
-			var(--yearly-planner-mobile-day-width, 2.5rem) + 12 *
-				var(--yearly-planner-mobile-cell-width, 4rem)
+			2rem + 12 * var(--yearly-planner-mobile-cell-width, 4rem)
 		);
 	}
 
@@ -839,13 +935,13 @@ available in the app when your plugin is enabled.
 	}
 
 	.yearly-planner-table thead .yearly-planner-corner {
-		min-width: var(--yearly-planner-mobile-day-width, 2.5rem);
-		width: var(--yearly-planner-mobile-day-width, 2.5rem);
+		min-width: 2rem;
+		width: 2rem;
 	}
 
 	.yearly-planner-table tbody th {
-		min-width: var(--yearly-planner-mobile-day-width, 2.5rem);
-		width: var(--yearly-planner-mobile-day-width, 2.5rem);
+		min-width: 2rem;
+		width: 2rem;
 	}
 
 	.yearly-planner-table tbody td {
@@ -870,23 +966,127 @@ available in the app when your plugin is enabled.
 	body.is-mobile .yearly-planner-table,
 	body.-is-mobile .yearly-planner-table {
 		width: calc(
-			var(--yearly-planner-mobile-day-width, 2.5rem) + 12 *
-				var(--yearly-planner-mobile-cell-width, 4rem)
+			2rem + 12 * var(--yearly-planner-mobile-cell-width, 4rem)
 		);
 		min-width: calc(
-			var(--yearly-planner-mobile-day-width, 2.5rem) + 12 *
-				var(--yearly-planner-mobile-cell-width, 4rem)
+			2rem + 12 * var(--yearly-planner-mobile-cell-width, 4rem)
 		);
 	}
 
 	body.is-mobile .yearly-planner-table thead .yearly-planner-corner,
 	body.-is-mobile .yearly-planner-table thead .yearly-planner-corner {
-		min-width: var(--yearly-planner-mobile-day-width, 2.5rem);
-		width: var(--yearly-planner-mobile-day-width, 2.5rem);
+		min-width: 2rem;
+		width: 2rem;
 	}
 }
 
 /* Obsidian mobile mode (body class) */
+body.is-mobile .modal .yearly-planner-modal-content,
+body.-is-mobile .modal .yearly-planner-modal-content {
+	overflow-x: hidden;
+	min-width: 0;
+	max-height: min(85vh, 600px);
+	overflow-y: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+/* Create File modal – mobile input width and touch targets */
+body.is-mobile .yearly-planner-create-file-modal .yearly-planner-folder-select,
+body.-is-mobile .yearly-planner-create-file-modal .yearly-planner-folder-select,
+body.is-mobile .yearly-planner-create-file-modal .yearly-planner-folder-input,
+body.-is-mobile .yearly-planner-create-file-modal .yearly-planner-folder-input,
+body.is-mobile .yearly-planner-create-file-modal .yearly-planner-date-input,
+body.-is-mobile .yearly-planner-create-file-modal .yearly-planner-date-input,
+body.is-mobile .yearly-planner-create-file-modal .yearly-planner-filename-input,
+body.-is-mobile
+	.yearly-planner-create-file-modal
+	.yearly-planner-filename-input {
+	width: 100%;
+	max-width: 100%;
+}
+
+body.is-mobile .yearly-planner-create-file-modal .yearly-planner-date-input,
+body.-is-mobile .yearly-planner-create-file-modal .yearly-planner-date-input {
+	min-width: 0;
+	min-height: 2.5rem;
+	height: 2.5rem;
+	-webkit-appearance: none;
+	appearance: none;
+	line-height: 1;
+}
+/* iOS Safari: remove extra padding from date input pseudo-elements */
+body.is-mobile
+	.yearly-planner-create-file-modal
+	.yearly-planner-date-input::-webkit-datetime-edit,
+body.-is-mobile
+	.yearly-planner-create-file-modal
+	.yearly-planner-date-input::-webkit-datetime-edit {
+	line-height: 1;
+	padding: 0;
+}
+body.is-mobile .yearly-planner-create-file-modal .yearly-planner-folder-select,
+body.-is-mobile .yearly-planner-create-file-modal .yearly-planner-folder-select,
+body.is-mobile .yearly-planner-create-file-modal .yearly-planner-folder-input,
+body.-is-mobile .yearly-planner-create-file-modal .yearly-planner-folder-input,
+body.is-mobile .yearly-planner-create-file-modal .yearly-planner-filename-input,
+body.-is-mobile
+	.yearly-planner-create-file-modal
+	.yearly-planner-filename-input {
+	min-height: 2.5rem;
+	height: 2.5rem;
+	line-height: 1;
+}
+body.is-mobile
+	.yearly-planner-modal-content:has(.yearly-planner-create-file-modal)
+	.mod-cta,
+body.-is-mobile
+	.yearly-planner-modal-content:has(.yearly-planner-create-file-modal)
+	.mod-cta {
+	min-height: 2.5rem;
+	height: 2.5rem;
+	line-height: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+body.is-mobile .yearly-planner-mode-btn,
+body.-is-mobile .yearly-planner-mode-btn {
+	min-height: 2.5rem;
+	padding: 0.5rem 1rem;
+}
+
+/* Create File modal color row: hex input full width on wrap */
+body.is-mobile
+	.yearly-planner-create-file-modal
+	.yearly-planner-color-row
+	+ .yearly-planner-filename-input,
+body.-is-mobile
+	.yearly-planner-create-file-modal
+	.yearly-planner-color-row
+	+ .yearly-planner-filename-input {
+	min-width: 0;
+}
+
+/* Mobile: color row – larger touch targets, proper wrapping */
+body.is-mobile .yearly-planner-color-row,
+body.-is-mobile .yearly-planner-color-row {
+	min-width: 0;
+	row-gap: 0.5rem;
+}
+
+body.is-mobile .yearly-planner-color-preset-btn,
+body.-is-mobile .yearly-planner-color-preset-btn {
+	width: 2.5rem;
+	height: 2.5rem;
+}
+
+body.is-mobile .yearly-planner-color-picker,
+body.-is-mobile .yearly-planner-color-picker {
+	width: 2.75rem;
+	height: 2.5rem;
+}
+
 body.is-mobile .yearly-planner-container,
 body.-is-mobile .yearly-planner-container {
 	padding: 0.5rem;
@@ -896,19 +1096,23 @@ body.is-mobile .yearly-planner-table,
 body.-is-mobile .yearly-planner-table {
 	table-layout: fixed;
 	width: calc(
-		var(--yearly-planner-mobile-day-width, 2.75rem) + 12 *
-			var(--yearly-planner-mobile-cell-width, 4.5rem)
+		2.25rem + 12 * var(--yearly-planner-mobile-cell-width, 4.5rem)
 	);
 	min-width: calc(
-		var(--yearly-planner-mobile-day-width, 2.75rem) + 12 *
-			var(--yearly-planner-mobile-cell-width, 4.5rem)
+		2.25rem + 12 * var(--yearly-planner-mobile-cell-width, 4.5rem)
 	);
 }
 
 body.is-mobile .yearly-planner-table thead .yearly-planner-corner,
 body.-is-mobile .yearly-planner-table thead .yearly-planner-corner {
-	min-width: var(--yearly-planner-mobile-day-width, 2.75rem);
-	width: var(--yearly-planner-mobile-day-width, 2.75rem);
+	min-width: 2.25rem;
+	width: 2.25rem;
+}
+
+body.is-mobile .yearly-planner-table tbody th,
+body.-is-mobile .yearly-planner-table tbody th {
+	min-width: 2.25rem;
+	width: 2.25rem;
 }
 
 body.is-mobile .yearly-planner-table tbody td,
@@ -946,6 +1150,95 @@ body.-is-mobile .yearly-planner-range-label {
 body.is-mobile .yearly-planner-table tbody td:active,
 body.-is-mobile .yearly-planner-table tbody td:active {
 	background: var(--background-modifier-hover);
+}
+
+/* Mobile: stronger weekend tint (6–8%) so background is visible on small screens */
+body.is-mobile
+	.yearly-planner-table
+	tbody
+	tr:nth-child(odd)
+	.yearly-planner-cell-saturday:not(.yearly-planner-cell-invalid),
+body.-is-mobile
+	.yearly-planner-table
+	tbody
+	tr:nth-child(odd)
+	.yearly-planner-cell-saturday:not(.yearly-planner-cell-invalid),
+body.is-mobile
+	.yearly-planner-table
+	tbody
+	tr:nth-child(odd)
+	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid),
+body.-is-mobile
+	.yearly-planner-table
+	tbody
+	tr:nth-child(odd)
+	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid) {
+	background: color-mix(
+		in srgb,
+		#3b82f6 8%,
+		var(--table-row-alt-background, var(--background-secondary-alt))
+	) !important;
+}
+
+body.is-mobile
+	.yearly-planner-table
+	tbody
+	tr:nth-child(odd)
+	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid),
+body.-is-mobile
+	.yearly-planner-table
+	tbody
+	tr:nth-child(odd)
+	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid) {
+	background: color-mix(
+		in srgb,
+		#ef4444 8%,
+		var(--table-row-alt-background, var(--background-secondary-alt))
+	) !important;
+}
+
+body.is-mobile
+	.yearly-planner-table
+	tbody
+	tr:nth-child(even)
+	.yearly-planner-cell-saturday:not(.yearly-planner-cell-invalid),
+body.-is-mobile
+	.yearly-planner-table
+	tbody
+	tr:nth-child(even)
+	.yearly-planner-cell-saturday:not(.yearly-planner-cell-invalid),
+body.is-mobile
+	.yearly-planner-table
+	tbody
+	tr:nth-child(even)
+	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid),
+body.-is-mobile
+	.yearly-planner-table
+	tbody
+	tr:nth-child(even)
+	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid) {
+	background: color-mix(
+		in srgb,
+		#3b82f6 8%,
+		var(--table-background, var(--background-primary))
+	) !important;
+}
+
+body.is-mobile
+	.yearly-planner-table
+	tbody
+	tr:nth-child(even)
+	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid),
+body.-is-mobile
+	.yearly-planner-table
+	tbody
+	tr:nth-child(even)
+	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid) {
+	background: color-mix(
+		in srgb,
+		#ef4444 8%,
+		var(--table-background, var(--background-primary))
+	) !important;
 }
 
 body.is-mobile .yearly-planner-cell-file:active,
