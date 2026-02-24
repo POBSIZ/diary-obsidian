@@ -1,9 +1,9 @@
 {
-	"id": "diary-obsidian",
+	"id": "diary",
 	"name": "Diary",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "1.4.4",
-	"description": "This is a diary obsidian plugin for Obsidian (https://github.com/POBSIZ/diary-obsidian)",
+	"description": "Yearly and monthly planner with date notes, range notes, and holiday support.",
 	"author": "Won",
 	"authorUrl": "https://github.com/POBSIZ",
 	"fundingUrl": "https://github.com/sponsors/POBSIZ",

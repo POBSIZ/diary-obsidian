@@ -51,13 +51,13 @@ Obsidian용 **다이어리 플러그인**입니다. 연간·월간 플래너를 
 
 ## 베타 테스트
 
-- **방법 A (간단)**: [Releases](https://github.com/POBSIZ/diary-obsidian/releases)에서 Pre-release 또는 Draft를 수동 다운로드 후 설치
-- **방법 B (BRAT)**: [BRAT 플러그인](https://obsidian.md/plugins?id=obsidian42-brat) 설치 → **Add beta plugin** → `POBSIZ/diary-obsidian` 레포 URL 추가
+- **방법 A (간단)**: [Releases](https://github.com/POBSIZ/obsidian-diary/releases)에서 Pre-release 또는 Draft를 수동 다운로드 후 설치
+- **방법 B (BRAT)**: [BRAT 플러그인](https://obsidian.md/plugins?id=obsidian42-brat) 설치 → **Add beta plugin** → `POBSIZ/obsidian-diary` 레포 URL 추가
 
 ## 수동 설치
 
-1. [Releases](https://github.com/POBSIZ/diary-obsidian/releases)에서 최신 버전 다운로드
-2. `main.js`, `styles.css`, `manifest.json`을 `Vault/.obsidian/plugins/diary-obsidian/` 폴더에 복사
+1. [Releases](https://github.com/POBSIZ/obsidian-diary/releases)에서 최신 버전 다운로드
+2. `main.js`, `styles.css`, `manifest.json`을 `Vault/.obsidian/plugins/diary/` 폴더에 복사
 3. **Settings → Community plugins**에서 "Diary" 활성화
 
 ## 개발

@@ -51,13 +51,13 @@ A **diary plugin** for Obsidian. Provides yearly and monthly planners.
 
 ## Beta testing
 
-- **Option A (manual)**: Download a Pre-release or Draft from [Releases](https://github.com/POBSIZ/diary-obsidian/releases) and install manually
-- **Option B (BRAT)**: Install [BRAT plugin](https://obsidian.md/plugins?id=obsidian42-brat) → **Add beta plugin** → add `POBSIZ/diary-obsidian` repo URL
+- **Option A (manual)**: Download a Pre-release or Draft from [Releases](https://github.com/POBSIZ/obsidian-diary/releases) and install manually
+- **Option B (BRAT)**: Install [BRAT plugin](https://obsidian.md/plugins?id=obsidian42-brat) → **Add beta plugin** → add `POBSIZ/obsidian-diary` repo URL
 
 ## Manual installation
 
-1. Download the latest release from [Releases](https://github.com/POBSIZ/diary-obsidian/releases)
-2. Copy `main.js`, `styles.css`, and `manifest.json` to `Vault/.obsidian/plugins/diary-obsidian/`
+1. Download the latest release from [Releases](https://github.com/POBSIZ/obsidian-diary/releases)
+2. Copy `main.js`, `styles.css`, and `manifest.json` to `Vault/.obsidian/plugins/diary/`
 3. Enable "Diary" in **Settings → Community plugins**
 
 ## Development
