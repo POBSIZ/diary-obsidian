@@ -1,12 +1,9 @@
+import { App, Notice, Platform, TFile, WorkspaceLeaf } from "obsidian";
 import {
-	App,
-	Notice,
-	Platform,
-	requestUrl,
-	TFile,
-	WorkspaceLeaf,
-} from "obsidian";
-import { getTopmostPlannerElementAt, getCellAtClientPos, getChipOrBarAt } from "./dom";
+	getTopmostPlannerElementAt,
+	getCellAtClientPos,
+	getChipOrBarAt,
+} from "./dom";
 import {
 	getSelectionBounds,
 	countSelectionCells,
@@ -75,9 +72,13 @@ export class PlannerInteractionHandler {
 	}
 
 	registerRangeHoverListeners(container: HTMLElement): void {
-		container.addEventListener("mouseover", this.boundHandleRangeMouseOver, {
-			capture: true,
-		});
+		container.addEventListener(
+			"mouseover",
+			this.boundHandleRangeMouseOver,
+			{
+				capture: true,
+			},
+		);
 		container.addEventListener("mouseout", this.boundHandleRangeMouseOut, {
 			capture: true,
 		});
@@ -120,7 +121,10 @@ export class PlannerInteractionHandler {
 		return { basename: b, color };
 	}
 
-	private isOverChipWithBasename(el: Element | null, basename: string): boolean {
+	private isOverChipWithBasename(
+		el: Element | null,
+		basename: string,
+	): boolean {
 		if (!el || !this.view.contentEl.contains(el as Node)) return false;
 		const chip = (el as HTMLElement).closest?.(
 			".yearly-planner-cell-file[data-range-basename]",
@@ -135,15 +139,16 @@ export class PlannerInteractionHandler {
 	}): void {
 		this.rangeHighlightBasenames = new Set([info.basename]);
 		this.rangeHighlightColor = info.color;
-		const highlightColor =
-			info.color ?? "var(--interactive-accent)";
+		const highlightColor = info.color ?? "var(--interactive-accent)";
 		const cells = this.view.contentEl.querySelectorAll(
 			"td[data-range-basenames]:not(.yearly-planner-cell-invalid)",
 		);
 		for (const cell of Array.from(cells)) {
 			const s = (cell as HTMLElement).dataset.rangeBasenames ?? "";
 			const cellBasenames = s.split(",").filter(Boolean);
-			if (cellBasenames.some((b) => this.rangeHighlightBasenames.has(b))) {
+			if (
+				cellBasenames.some((b) => this.rangeHighlightBasenames.has(b))
+			) {
 				cell.addClass("yearly-planner-cell-range-highlight");
 				(cell as HTMLElement).style.setProperty(
 					"--yearly-planner-range-highlight-color",
@@ -301,58 +306,12 @@ export class PlannerInteractionHandler {
 	}
 
 	handlePlannerMouseDown(e: MouseEvent): void {
-		// #region agent log
-		void requestUrl({
-			url: "http://127.0.0.1:7358/ingest/5d28a5ec-1d77-431e-b490-4a427b78fa84",
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"X-Debug-Session-Id": "6921d3",
-			},
-			body: JSON.stringify({
-				sessionId: "6921d3",
-				location: "interactions.ts:handlePlannerMouseDown",
-				message: "mousedown",
-				data: {
-					clientX: e.clientX,
-					clientY: e.clientY,
-					isDesktop: Platform.isDesktop,
-					hypothesisId: "H1",
-				},
-				timestamp: Date.now(),
-			}),
-		}).catch(() => {});
-		// #endregion
 		if (!Platform.isMobile) {
 			this.maybeStartDrag(e.clientX, e.clientY, e);
 		}
 	}
 
 	handlePlannerTouchStart(e: TouchEvent): void {
-		// #region agent log
-		const t0 = e.touches[0];
-		void requestUrl({
-			url: "http://127.0.0.1:7358/ingest/5d28a5ec-1d77-431e-b490-4a427b78fa84",
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"X-Debug-Session-Id": "6921d3",
-			},
-			body: JSON.stringify({
-				sessionId: "6921d3",
-				location: "interactions.ts:handlePlannerTouchStart",
-				message: "touchstart",
-				data: {
-					touchCount: e.touches.length,
-					clientX: t0?.clientX,
-					clientY: t0?.clientY,
-					isMobile: Platform.isMobile,
-					hypothesisId: "H1",
-				},
-				timestamp: Date.now(),
-			}),
-		}).catch(() => {});
-		// #endregion
 		if (e.touches.length >= 2) {
 			this.touchStartPos = null;
 			return;
@@ -404,30 +363,6 @@ export class PlannerInteractionHandler {
 			clientY,
 		);
 		const chipOrBar = getChipOrBarAt(this.view.contentEl, clientX, clientY);
-		// #region agent log
-		void requestUrl({
-			url: "http://127.0.0.1:7358/ingest/5d28a5ec-1d77-431e-b490-4a427b78fa84",
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"X-Debug-Session-Id": "6921d3",
-			},
-			body: JSON.stringify({
-				sessionId: "6921d3",
-				location: "interactions.ts:maybeStartDrag",
-				message: "maybeStartDrag",
-				data: {
-					hasEl: !!el,
-					elTag: el?.tagName,
-					hasChipOrBar: !!chipOrBar,
-					chipPath: chipOrBar?.dataset?.path,
-					isDesktop: Platform.isDesktop,
-					hypothesisId: "H2",
-				},
-				timestamp: Date.now(),
-			}),
-		}).catch(() => {});
-		// #endregion
 		if (!el || !this.view.contentEl.contains(el as Node)) return;
 
 		const onHoliday = (el as HTMLElement).closest?.(
@@ -499,23 +434,6 @@ export class PlannerInteractionHandler {
 		startX: number,
 		startY: number,
 	): void {
-		// #region agent log
-		void requestUrl({
-			url: "http://127.0.0.1:7358/ingest/5d28a5ec-1d77-431e-b490-4a427b78fa84",
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"X-Debug-Session-Id": "6921d3",
-			},
-			body: JSON.stringify({
-				sessionId: "6921d3",
-				location: "interactions.ts:maybeStartChipDrag",
-				message: "chip drag started",
-				data: { path: file.path, hypothesisId: "H3" },
-				timestamp: Date.now(),
-			}),
-		}).catch(() => {});
-		// #endregion
 		this.chipDragPending = {
 			file,
 			startYear,
@@ -532,38 +450,9 @@ export class PlannerInteractionHandler {
 		const pending = this.chipDragPending;
 		if (!pending && !this.view.chipDragState) return;
 
-		const dx = pending
-			? e.clientX - pending.startX
-			: 0;
-		const dy = pending
-			? e.clientY - pending.startY
-			: 0;
+		const dx = pending ? e.clientX - pending.startX : 0;
+		const dy = pending ? e.clientY - pending.startY : 0;
 		const dist = Math.sqrt(dx * dx + dy * dy);
-
-		// #region agent log
-		if (dist >= DRAG_THRESHOLD - 1) {
-			void requestUrl({
-				url: "http://127.0.0.1:7358/ingest/5d28a5ec-1d77-431e-b490-4a427b78fa84",
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					"X-Debug-Session-Id": "6921d3",
-				},
-				body: JSON.stringify({
-					sessionId: "6921d3",
-					location: "interactions.ts:handleChipMouseMove",
-					message: "chip move",
-					data: {
-						dist: Math.round(dist * 10) / 10,
-						threshold: DRAG_THRESHOLD,
-						hasChipDragState: !!this.view.chipDragState,
-						hypothesisId: "H4",
-					},
-					timestamp: Date.now(),
-				}),
-			}).catch(() => {});
-		}
-		// #endregion
 
 		if (!this.view.chipDragState && pending && dist >= DRAG_THRESHOLD) {
 			this.view.chipDragState = {
@@ -582,35 +471,7 @@ export class PlannerInteractionHandler {
 		if (this.view.chipDragState) {
 			// render() adds pointer-events:none to chips, so getCellAtClientPos hits td
 			const cell = getCellAtClientPos(e.clientX, e.clientY);
-			// #region agent log
-			void requestUrl({
-				url: "http://127.0.0.1:7358/ingest/5d28a5ec-1d77-431e-b490-4a427b78fa84",
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					"X-Debug-Session-Id": "6921d3",
-				},
-				body: JSON.stringify({
-					sessionId: "6921d3",
-					location: "interactions.ts:handleChipMouseMove-cell",
-					message: "cell at cursor",
-					data: {
-						clientX: e.clientX,
-						clientY: e.clientY,
-						cell: cell
-							? { year: cell.year, month: cell.month, day: cell.day }
-							: null,
-						start: {
-							year: this.view.chipDragState.startYear,
-							month: this.view.chipDragState.startMonth,
-							day: this.view.chipDragState.startDay,
-						},
-						hypothesisId: "H7",
-					},
-					timestamp: Date.now(),
-				}),
-			}).catch(() => {});
-			// #endregion
+
 			if (cell) {
 				const s = this.view.chipDragState;
 				const changed =
@@ -626,27 +487,6 @@ export class PlannerInteractionHandler {
 	}
 
 	private handleChipMouseUp(e: MouseEvent): void {
-		// #region agent log
-		void requestUrl({
-			url: "http://127.0.0.1:7358/ingest/5d28a5ec-1d77-431e-b490-4a427b78fa84",
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"X-Debug-Session-Id": "6921d3",
-			},
-			body: JSON.stringify({
-				sessionId: "6921d3",
-				location: "interactions.ts:handleChipMouseUp",
-				message: "chip mouseup",
-				data: {
-					hadChipDragState: !!this.view.chipDragState,
-					hadPending: !!this.chipDragPending,
-					hypothesisId: "H5",
-				},
-				timestamp: Date.now(),
-			}),
-		}).catch(() => {});
-		// #endregion
 		const pending = this.chipDragPending;
 		this.chipDragPending = null;
 		this.clearChipDragListeners();
@@ -667,7 +507,10 @@ export class PlannerInteractionHandler {
 		}
 	}
 
-	private async handleChipDragEnd(_clientX: number, _clientY: number): Promise<void> {
+	private async handleChipDragEnd(
+		_clientX: number,
+		_clientY: number,
+	): Promise<void> {
 		const state = this.view.chipDragState;
 		if (!state) return;
 
@@ -680,36 +523,6 @@ export class PlannerInteractionHandler {
 			month: state.currentMonth,
 			day: state.currentDay,
 		};
-		// #region agent log
-		void requestUrl({
-			url: "http://127.0.0.1:7358/ingest/5d28a5ec-1d77-431e-b490-4a427b78fa84",
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"X-Debug-Session-Id": "6921d3",
-			},
-			body: JSON.stringify({
-				sessionId: "6921d3",
-				location: "interactions.ts:handleChipDragEnd",
-				message: "chip drag end",
-				data: {
-					cell,
-					start: {
-						year: state.startYear,
-						month: state.startMonth,
-						day: state.startDay,
-					},
-					sameCell:
-						cell.year === state.startYear &&
-						cell.month === state.startMonth &&
-						cell.day === state.startDay,
-					runId: "post-fix",
-					hypothesisId: "H6",
-				},
-				timestamp: Date.now(),
-			}),
-		}).catch(() => {});
-		// #endregion
 		if (
 			cell.year === state.startYear &&
 			cell.month === state.startMonth &&
@@ -733,7 +546,10 @@ export class PlannerInteractionHandler {
 	}
 
 	clearChipDragListeners(): void {
-		document.removeEventListener("mousemove", this.boundHandleChipMouseMove);
+		document.removeEventListener(
+			"mousemove",
+			this.boundHandleChipMouseMove,
+		);
 		document.removeEventListener("mouseup", this.boundHandleChipMouseUp);
 	}
 
