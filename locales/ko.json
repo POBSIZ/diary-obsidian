@@ -34,6 +34,7 @@
 	"modal.fileName": "파일 이름",
 	"modal.fileNamePlaceholder": "YYYY-MM-DD-suffix 또는 YYYY-MM-DD--YYYY-MM-DD-suffix",
 	"modal.suffixAsTitle": "suffix는 파일 제목(#)으로 사용됩니다",
+	"modal.suffixExample": "예: 2026-02-27-meeting",
 	"modal.color": "색상",
 	"modal.pickColor": "색상 선택",
 	"modal.chipColorTitle": "칩 색상 (hex, rgb 또는 색상 이름)",

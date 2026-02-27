@@ -34,6 +34,7 @@
 	"modal.fileName": "File name",
 	"modal.fileNamePlaceholder": "YYYY-MM-DD-suffix or YYYY-MM-DD--YYYY-MM-DD-suffix",
 	"modal.suffixAsTitle": "Suffix is used as the file title (#)",
+	"modal.suffixExample": "e.g. 2026-02-27-meeting",
 	"modal.color": "Color",
 	"modal.pickColor": "Pick color",
 	"modal.chipColorTitle": "Chip color (hex, rgb, or color name)",

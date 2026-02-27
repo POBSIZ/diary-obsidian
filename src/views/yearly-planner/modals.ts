@@ -303,7 +303,9 @@ export class CreateFileModal extends Modal {
 		const filenameHint = filenameRow.createDiv({
 			cls: "yearly-planner-create-file-hint",
 		});
-		filenameHint.setText(t("modal.suffixAsTitle"));
+		filenameHint.appendText(t("modal.suffixAsTitle"));
+		filenameHint.appendText(" ");
+		filenameHint.appendText(t("modal.suffixExample"));
 
 		const colorRow = form.createDiv({
 			cls: "yearly-planner-create-file-row",
