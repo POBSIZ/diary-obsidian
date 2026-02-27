@@ -221,7 +221,18 @@ function toStringSafe(val: unknown): string | null {
 	return null;
 }
 
+/** Extract suffix from basename for chip display. Single: YYYY-MM-DD-suffix, Range: YYYY-MM-DD--YYYY-MM-DD-suffix. */
+function getSuffixFromBasename(basename: string): string | null {
+	const clean = basename.replace(/\.md$/i, "");
+	const rangeParsed = parseRangeBasename(clean);
+	if (rangeParsed?.suffix) return rangeParsed.suffix;
+	const singleMatch = clean.match(/^(\d{4}-\d{2}-\d{2})(?:-(.+))?$/);
+	return singleMatch?.[2] ?? null;
+}
+
 export function getFileTitle(app: App, file: TFile): string {
+	const suffix = getSuffixFromBasename(file.basename);
+	if (suffix) return suffix;
 	const cache = app.metadataCache.getFileCache(file);
 	const rawTitle: unknown = cache?.frontmatter?.title;
 	const titleStr = rawTitle != null ? toStringSafe(rawTitle) : null;
