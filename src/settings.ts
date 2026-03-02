@@ -72,7 +72,7 @@ export class DiaryObsidianSettingTab extends PluginSettingTab {
 			.setDesc(t("settings.dateFormatDesc"))
 			.addText((text) =>
 				text
-					.setPlaceholder("YYYY-MM-DD")
+					.setPlaceholder("2000-01-15")
 					.setValue(this.plugin.settings.dateFormat)
 					.onChange(async (value) => {
 						this.plugin.settings.dateFormat = value || "YYYY-MM-DD";
