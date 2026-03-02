@@ -1,4 +1,3 @@
-/* eslint-disable obsidianmd/ui/sentence-case -- Setting names use title case for clarity */
 import { App, PluginSettingTab, Setting } from "obsidian";
 import { setLocale, t } from "./i18n";
 import DiaryObsidian from "./main";
