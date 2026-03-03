@@ -128,3 +128,27 @@ export async function renderPlanNotePanel(
 		createBtn.addEventListener("click", () => void opts.onCreate());
 	}
 }
+
+/**
+ * Syncs the expanded state to an existing plan note panel DOM (e.g. when preserved during re-render).
+ * Call this when reusing a preserved plan note wrapper so the toggle reflects current settings.
+ */
+export function syncPlanNotePanelExpandedState(
+	wrapper: HTMLElement,
+	expanded: boolean,
+): void {
+	const body = wrapper.querySelector<HTMLElement>(".plan-note-panel-body");
+	const toggleBtn = wrapper.querySelector<HTMLElement>(
+		".plan-note-panel-toggle-btn",
+	);
+	if (body) {
+		body.toggleClass("is-collapsed", !expanded);
+	}
+	if (toggleBtn) {
+		setIcon(toggleBtn, expanded ? "chevron-down" : "chevron-right");
+		toggleBtn.setAttribute(
+			"aria-label",
+			expanded ? t("planNote.collapse") : t("planNote.expand"),
+		);
+	}
+}

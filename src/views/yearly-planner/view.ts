@@ -30,7 +30,10 @@ import {
 	getRangeLaneMap,
 	getYearNoteFilePath,
 } from "./file-utils";
-import { renderPlanNotePanel } from "../plan-note-panel";
+import {
+	renderPlanNotePanel,
+	syncPlanNotePanelExpandedState,
+} from "../plan-note-panel";
 
 export type { YearlyPlannerState } from "./types";
 
@@ -159,6 +162,10 @@ export class YearlyPlannerView
 		this.renderHeader(contentEl);
 		if (preservePlanNote && planNoteWrapper) {
 			contentEl.appendChild(planNoteWrapper);
+			syncPlanNotePanelExpandedState(
+				planNoteWrapper,
+				this.plugin.settings.planNotePanelExpanded ?? true,
+			);
 		} else {
 			const notePanelEl = contentEl.createDiv({
 				cls: "plan-note-panel-wrapper",
