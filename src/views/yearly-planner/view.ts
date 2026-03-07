@@ -241,6 +241,18 @@ export class YearlyPlannerView
 					this.year = new Date().getFullYear();
 					this.render();
 				},
+				onSwitchToMonthly: () => {
+					const now = new Date();
+					const month =
+						this.year === now.getFullYear()
+							? now.getMonth() + 1
+							: 1;
+					void this.plugin.switchToMonthly(
+						this.leaf,
+						this.year,
+						month,
+					);
+				},
 				onYearClick: (year) => {
 					this.year = year;
 					this.render();

@@ -24,6 +24,7 @@ export interface HeaderCallbacks {
 	onToday: () => void;
 	onYearClick: (year: number) => void;
 	onAddFile?: () => void;
+	onSwitchToMonthly?: () => void;
 }
 
 export function renderYearlyPlannerHeader(
@@ -74,6 +75,15 @@ export function renderYearlyPlannerHeader(
 	setIcon(todayBtn, "calendar");
 	todayBtn.ariaLabel = t("header.goToCurrentYear");
 	todayBtn.onclick = callbacks.onToday;
+
+	if (callbacks.onSwitchToMonthly) {
+		const monthBtn = yearWrapper.createEl("button", {
+			cls: "yearly-planner-year-btn",
+		});
+		setIcon(monthBtn, "calendar-days");
+		monthBtn.ariaLabel = t("header.switchToMonthly");
+		monthBtn.onclick = callbacks.onSwitchToMonthly;
+	}
 
 	if (callbacks.onAddFile) {
 		const addFileBtn = yearWrapper.createEl("button", {

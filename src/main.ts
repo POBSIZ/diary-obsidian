@@ -1,4 +1,4 @@
-import { Plugin } from "obsidian";
+import { Plugin, WorkspaceLeaf } from "obsidian";
 import { setLocale, t } from "./i18n";
 import {
 	DEFAULT_SETTINGS,
@@ -106,6 +106,28 @@ export default class DiaryObsidian extends Plugin {
 			state: { year: now.getFullYear(), month: now.getMonth() + 1 },
 		});
 		await workspace.revealLeaf(leaf);
+	}
+
+	/** Switch leaf to monthly planner. Reuses the same leaf. */
+	async switchToMonthly(
+		leaf: WorkspaceLeaf,
+		year: number,
+		month: number,
+	): Promise<void> {
+		await leaf.setViewState({
+			type: VIEW_TYPE_MONTHLY_PLANNER,
+			state: { year, month },
+		});
+		await this.app.workspace.revealLeaf(leaf);
+	}
+
+	/** Switch leaf to yearly planner. Reuses the same leaf. */
+	async switchToYearly(leaf: WorkspaceLeaf, year: number): Promise<void> {
+		await leaf.setViewState({
+			type: VIEW_TYPE_YEARLY_PLANNER,
+			state: { year },
+		});
+		await this.app.workspace.revealLeaf(leaf);
 	}
 
 	async loadSettings() {

@@ -301,6 +301,9 @@ export class MonthlyPlannerView
 								this.pinchZoom?.resetScale();
 							}
 						: undefined,
+				onSwitchToYearly: () => {
+					void this.plugin.switchToYearly(this.leaf, this.year);
+				},
 			},
 		);
 	}

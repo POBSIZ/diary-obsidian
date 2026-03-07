@@ -14,6 +14,8 @@
 	"header.nextMonth": "Next month",
 	"header.goToCurrentMonth": "Go to current month",
 	"header.addFile": "Add file",
+	"header.switchToMonthly": "Switch to monthly view",
+	"header.switchToYearly": "Switch to yearly view",
 	"header.resetZoom": "Reset zoom",
 	"header.clickToEnterYear": "Click to enter year",
 	"header.clickToEnterMonthYear": "Click to enter month and year",

@@ -14,6 +14,8 @@
 	"header.nextMonth": "다음 달",
 	"header.goToCurrentMonth": "현재 달로 이동",
 	"header.addFile": "파일 추가",
+	"header.switchToMonthly": "월간 보기로 전환",
+	"header.switchToYearly": "연간 보기로 전환",
 	"header.resetZoom": "확대 비율 초기화",
 	"header.clickToEnterYear": "클릭하여 연도 입력",
 	"header.clickToEnterMonthYear": "클릭하여 월·연도 입력",

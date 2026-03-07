@@ -23,6 +23,7 @@ export interface MonthlyHeaderCallbacks {
 	onMonthYearClick: (year: number, month: number) => void;
 	onAddFile?: () => void;
 	onResetZoom?: () => void;
+	onSwitchToYearly?: () => void;
 }
 
 export function renderMonthlyPlannerHeader(
@@ -79,6 +80,15 @@ export function renderMonthlyPlannerHeader(
 	setIcon(todayBtn, "calendar");
 	todayBtn.ariaLabel = t("header.goToCurrentMonth");
 	todayBtn.onclick = callbacks.onToday;
+
+	if (callbacks.onSwitchToYearly) {
+		const yearBtn = navWrapper.createEl("button", {
+			cls: "monthly-planner-nav-btn",
+		});
+		setIcon(yearBtn, "calendar-range");
+		yearBtn.ariaLabel = t("header.switchToYearly");
+		yearBtn.onclick = callbacks.onSwitchToYearly;
+	}
 
 	if (callbacks.onAddFile) {
 		const addFileBtn = navWrapper.createEl("button", {
