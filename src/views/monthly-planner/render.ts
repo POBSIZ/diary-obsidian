@@ -7,11 +7,19 @@ import {
 	WEEKDAY_LABELS_EN,
 	WEEKEND_LABELS_KO,
 	WEEKEND_LABELS_EN,
+	TODO_CHIP_EMOJI_COMPLETED,
+	TODO_CHIP_EMOJI_INCOMPLETE,
 } from "../../constants";
 import { getDayOfWeek } from "../../utils/date";
 import type { ChipDragState, DragState } from "../yearly-planner/types";
 import type { HolidayData } from "../../utils/holidays";
-import { getFilesForDate, getFileTitle, getChipColor } from "../yearly-planner/file-utils";
+import {
+	getFilesForDate,
+	getFileTitle,
+	getChipColor,
+	isTodoCompleted,
+	isTodoFile,
+} from "../yearly-planner/file-utils";
 import { isDateInSelection } from "../yearly-planner/selection";
 import type { CalendarCell } from "../../utils/date";
 import { MonthYearInputModal } from "./modals";
@@ -216,10 +224,19 @@ export function createMonthlyCell(
 				barEl.style.setProperty("--range-color", chipColor);
 			}
 			if (isFirst) {
-				barEl.createSpan({
+				const title = getFileTitle(ctx.app, file);
+				const displayTitle = isTodoCompleted(ctx.app, file)
+					? `${TODO_CHIP_EMOJI_COMPLETED} ${title}`
+					: isTodoFile(ctx.app, file)
+						? `${TODO_CHIP_EMOJI_INCOMPLETE} ${title}`
+						: title;
+				const labelEl = barEl.createSpan({
 					cls: "monthly-planner-range-label",
-					text: getFileTitle(ctx.app, file),
+					text: displayTitle,
 				});
+				if (isTodoCompleted(ctx.app, file)) {
+					labelEl.addClass("monthly-planner-chip-completed");
+				}
 			}
 		});
 	}
@@ -230,7 +247,15 @@ export function createMonthlyCell(
 			const linkEl = listEl.createEl("div", {
 				cls: "monthly-planner-cell-file",
 			});
-			linkEl.textContent = getFileTitle(ctx.app, file);
+			const title = getFileTitle(ctx.app, file);
+			if (isTodoCompleted(ctx.app, file)) {
+				linkEl.addClass("monthly-planner-chip-completed");
+				linkEl.textContent = `${TODO_CHIP_EMOJI_COMPLETED} ${title}`;
+			} else if (isTodoFile(ctx.app, file)) {
+				linkEl.textContent = `${TODO_CHIP_EMOJI_INCOMPLETE} ${title}`;
+			} else {
+				linkEl.textContent = title;
+			}
 			linkEl.title = file.path;
 			linkEl.dataset.path = file.path;
 			const chipColor = getChipColor(ctx.app, file);

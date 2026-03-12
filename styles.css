@@ -138,7 +138,8 @@ available in the app when your plugin is enabled.
 }
 
 .yearly-planner-create-file-row.is-hidden,
-.yearly-planner-folder-other-row.is-hidden {
+.yearly-planner-folder-other-row.is-hidden,
+.yearly-planner-completed-row.is-hidden {
 	display: none;
 }
 
@@ -664,6 +665,10 @@ available in the app when your plugin is enabled.
 .yearly-planner-cell-file:hover {
 	color: var(--text-accent);
 	background: var(--background-modifier-hover);
+}
+
+.yearly-planner-cell-file.yearly-planner-chip-completed {
+	text-decoration: line-through;
 }
 
 /* During chip drag: make chips/containers ignore pointer so getCellAtClientPos hits the td */
@@ -1532,6 +1537,10 @@ body.-is-mobile .yearly-planner-cell-file {
 	background: var(--background-modifier-hover);
 }
 
+.monthly-planner-cell-file.monthly-planner-chip-completed {
+	text-decoration: line-through;
+}
+
 /* Range bar: chip-like layer with distinct color per bar, gap between stacked bars */
 .monthly-planner-range-bar {
 	--range-color: var(--interactive-accent);
@@ -1646,11 +1655,10 @@ body.-is-mobile .yearly-planner-cell-file {
 	font-size: 0.65em;
 	color: var(--text-muted);
 	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	max-width: 100%;
-	padding: 0.1rem 0.2rem;
-	border-radius: 2px;
+}
+
+.monthly-planner-range-label.monthly-planner-chip-completed {
+	text-decoration: line-through;
 }
 
 .monthly-planner-cell-holidays {

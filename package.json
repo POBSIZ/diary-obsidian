@@ -1,6 +1,6 @@
 {
 	"name": "diary-obsidian",
-	"version": "1.0.5",
+	"version": "1.0.6",
 	"description": "This is a diary obsidian plugin for Obsidian (https://obsidian.md)",
 	"main": "main.js",
 	"type": "module",

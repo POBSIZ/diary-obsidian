@@ -8,25 +8,81 @@ import {
 	WorkspaceLeaf,
 } from "obsidian";
 import { getLocale, t } from "../../i18n";
-import { getAllFolderPaths, getChipColor } from "./file-utils";
+import {
+	getAllFolderPaths,
+	getChipColor,
+	isTodoCompleted,
+	isTodoFile,
+} from "./file-utils";
 import {
 	moveFileToDate,
 	moveRangeFileToNewDates,
 	parseSingleDateBasename,
 	updateFileColor,
+	updateFileTodoStatus,
 } from "./file-operations";
 import { parseRangeBasename } from "../../utils/range";
 import type { SelectionBounds } from "./types";
 
-/** Chip color presets for CreateFileModal. */
-const CHIP_COLOR_PRESETS: readonly { hex: string }[] = [
-	{ hex: "#7c3aed" },
-	{ hex: "#22c55e" },
-	{ hex: "#f59e0b" },
-	{ hex: "#8b5cf6" },
-	{ hex: "#ec4899" },
-	{ hex: "#6b7280" },
+/** Additional chip color presets (first preset is theme accent, computed at runtime). No duplicates. */
+const CHIP_COLOR_PRESETS_EXTRA: readonly { hex: string }[] = [
+	{ hex: "#22c55e" }, // green
+	{ hex: "#f59e0b" }, // yellow/orange
+	{ hex: "#ec4899" }, // pink
+	{ hex: "#6b7280" }, // gray
 ];
+
+/** Resolves var(--interactive-accent) to 6-digit hex. Falls back to #7c3aed if unavailable. */
+function getThemeAccentHex(): string {
+	const el = document.createElement("div");
+	el.setCssProps({ color: "var(--interactive-accent)" });
+	document.body.appendChild(el);
+	const computed = getComputedStyle(el).color;
+	document.body.removeChild(el);
+	const m = computed.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+	if (m) {
+		const r = parseInt(m[1] ?? "0", 10);
+		const g = parseInt(m[2] ?? "0", 10);
+		const b = parseInt(m[3] ?? "0", 10);
+		return (
+			"#" +
+			[r, g, b]
+				.map((x) =>
+					Math.max(0, Math.min(255, x)).toString(16).padStart(2, "0"),
+				)
+				.join("")
+		);
+	}
+	const m2 = computed.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+	if (m2) {
+		const r = parseInt(m2[1] ?? "0", 10);
+		const g = parseInt(m2[2] ?? "0", 10);
+		const b = parseInt(m2[3] ?? "0", 10);
+		return (
+			"#" +
+			[r, g, b]
+				.map((x) =>
+					Math.max(0, Math.min(255, x)).toString(16).padStart(2, "0"),
+				)
+				.join("")
+		);
+	}
+	if (toHex6(computed)) return toHex6(computed)!;
+	return "#7c3aed";
+}
+
+/** Chip color presets: first = theme accent, rest = static. Deduplicates by normalized hex. */
+function getChipColorPresets(): { hex: string }[] {
+	const themeHex = getThemeAccentHex();
+	const all = [{ hex: themeHex }, ...CHIP_COLOR_PRESETS_EXTRA];
+	const seen = new Set<string>();
+	return all.filter((p) => {
+		const normalized = (toHex6(p.hex) ?? p.hex).toLowerCase();
+		if (seen.has(normalized)) return false;
+		seen.add(normalized);
+		return true;
+	});
+}
 
 /** Max lines to show in file preview. */
 const FILE_PREVIEW_MAX_LINES = 20;
@@ -45,18 +101,63 @@ function toHex6(hex: string): string | null {
 	return m6 ? hex : null;
 }
 
+/** Normalize any CSS color to 6-digit hex for comparison. Returns null if invalid. */
+function normalizeColorToHex(cssColor: string): string | null {
+	const trimmed = cssColor.trim();
+	if (!trimmed) return null;
+	const hex = toHex6(trimmed);
+	if (hex) return hex.toLowerCase();
+	const div = document.createElement("div");
+	div.style.color = trimmed;
+	document.body.appendChild(div);
+	const computed = getComputedStyle(div).color;
+	document.body.removeChild(div);
+	if (!computed) return null;
+	const m = computed.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+	if (m) {
+		const r = parseInt(m[1] ?? "0", 10);
+		const g = parseInt(m[2] ?? "0", 10);
+		const b = parseInt(m[3] ?? "0", 10);
+		return (
+			"#" +
+			[r, g, b]
+				.map((x) =>
+					Math.max(0, Math.min(255, x)).toString(16).padStart(2, "0"),
+				)
+				.join("")
+		);
+	}
+	const m2 = computed.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+	if (m2) {
+		const r = parseInt(m2[1] ?? "0", 10);
+		const g = parseInt(m2[2] ?? "0", 10);
+		const b = parseInt(m2[3] ?? "0", 10);
+		return (
+			"#" +
+			[r, g, b]
+				.map((x) =>
+					Math.max(0, Math.min(255, x)).toString(16).padStart(2, "0"),
+				)
+				.join("")
+		);
+	}
+	return toHex6(computed);
+}
+
 export type CreateSingleDateFileFn = (basename: string) => Promise<TFile>;
 
 export type CreateSingleDateFileWithFolderFn = (
 	folder: string,
 	basename: string,
 	color?: string,
+	todo?: boolean,
 ) => Promise<TFile>;
 
 export type CreateRangeFileWithFolderFn = (
 	folder: string,
 	basename: string,
 	color?: string,
+	todo?: boolean,
 ) => Promise<TFile>;
 
 function formatHolidayDate(dateStr: string): string {
@@ -150,6 +251,8 @@ export class CreateFileModal extends Modal {
 	private colorInput!: HTMLInputElement;
 	private colorPickerInput!: HTMLInputElement;
 	private colorPresetBtns: HTMLButtonElement[] = [];
+	private colorPresets: { hex: string }[] = [];
+	private todoCheckbox!: HTMLInputElement;
 	private rangeRow!: HTMLElement;
 	private singleModeBtn!: HTMLButtonElement;
 	private rangeModeBtn!: HTMLButtonElement;
@@ -262,7 +365,8 @@ export class CreateFileModal extends Modal {
 			type: "text",
 			cls: "yearly-planner-folder-input",
 		});
-		this.folderCustomInput.placeholder = "Planner"; /* Default folder name */
+		this.folderCustomInput.placeholder =
+			"Planner"; /* Default folder name */
 		this.folderCustomInput.value = defaultFolder || "";
 		this.updateFolderOtherVisibility();
 
@@ -307,6 +411,8 @@ export class CreateFileModal extends Modal {
 		filenameHint.appendText(" ");
 		filenameHint.appendText(t("modal.suffixExample"));
 
+		this.colorPresets = getChipColorPresets();
+		const defaultColor = this.colorPresets[0]!.hex;
 		const colorRow = form.createDiv({
 			cls: "yearly-planner-create-file-row",
 		});
@@ -317,7 +423,7 @@ export class CreateFileModal extends Modal {
 		const presetsEl = colorPresetsWrap.createDiv({
 			cls: "yearly-planner-color-presets",
 		});
-		CHIP_COLOR_PRESETS.forEach((preset) => {
+		this.colorPresets.forEach((preset) => {
 			const btn = presetsEl.createEl("button", {
 				cls: "yearly-planner-color-preset-btn",
 				attr: { type: "button" },
@@ -332,7 +438,7 @@ export class CreateFileModal extends Modal {
 			type: "color",
 			cls: "yearly-planner-color-picker",
 		});
-		this.colorPickerInput.value = "#22c55e";
+		this.colorPickerInput.value = defaultColor;
 		this.colorPickerInput.title = t("modal.pickColor");
 		this.colorPickerInput.oninput = () => {
 			this.colorInput.value = this.colorPickerInput.value;
@@ -342,9 +448,22 @@ export class CreateFileModal extends Modal {
 			type: "text",
 			cls: "yearly-planner-filename-input",
 		});
-		this.colorInput.placeholder = "#22c55e";
+		this.colorInput.value = defaultColor;
+		this.colorInput.placeholder = defaultColor;
 		this.colorInput.title = t("modal.chipColorTitle");
 		this.colorInput.oninput = () => this.syncColorFromText();
+		this.updateColorPresetActive();
+
+		const todoRow = form.createDiv({
+			cls: "yearly-planner-create-file-row",
+		});
+		this.todoCheckbox = todoRow.createEl("input", {
+			type: "checkbox",
+			cls: "yearly-planner-todo-checkbox",
+		});
+		const todoLabel = todoRow.createEl("label");
+		todoLabel.appendChild(this.todoCheckbox);
+		todoLabel.appendText(` ${t("modal.todoFile")}`);
 
 		this.syncFilename();
 		this.updateModeUI();
@@ -379,13 +498,12 @@ export class CreateFileModal extends Modal {
 	}
 
 	private updateColorPresetActive(): void {
-		const val = this.colorInput.value.trim().toLowerCase();
-		CHIP_COLOR_PRESETS.forEach((preset, i) => {
+		const val = this.colorInput.value.trim();
+		const normalizedVal = normalizeColorToHex(val) ?? val.toLowerCase();
+		this.colorPresets.forEach((preset, i) => {
 			const btn = this.colorPresetBtns[i];
-			btn?.toggleClass(
-				"is-active",
-				val === preset.hex.toLowerCase(),
-			);
+			const presetHex = (toHex6(preset.hex) ?? preset.hex).toLowerCase();
+			btn?.toggleClass("is-active", normalizedVal === presetHex);
 		});
 	}
 
@@ -440,22 +558,38 @@ export class CreateFileModal extends Modal {
 					filename.split("-").slice(0, 3).join("-"),
 				);
 				if (!parsed && !/^\d{4}-\d{2}-\d{2}/.test(filename)) return;
-				const color = this.colorInput.value.trim() || undefined;
+				const rawColor = this.colorInput.value.trim();
+				const themeHex = getThemeAccentHex().toLowerCase();
+				const color =
+					rawColor &&
+					(toHex6(rawColor) ?? rawColor).toLowerCase() !== themeHex
+						? rawColor
+						: undefined;
+				const todo = this.todoCheckbox.checked;
 				const file = await this.options.createSingleDateFile(
 					folder,
 					filename,
 					color,
+					todo,
 				);
 				this.options.onCreated();
 				this.close();
 				void this.app.workspace.getLeaf().openFile(file);
 			} else {
 				if (!filename) return;
-				const color = this.colorInput.value.trim() || undefined;
+				const rawColor = this.colorInput.value.trim();
+				const themeHex = getThemeAccentHex().toLowerCase();
+				const color =
+					rawColor &&
+					(toHex6(rawColor) ?? rawColor).toLowerCase() !== themeHex
+						? rawColor
+						: undefined;
+				const todo = this.todoCheckbox.checked;
 				const file = await this.options.createRangeFile(
 					folder,
 					filename,
 					color,
+					todo,
 				);
 				this.options.onCreated();
 				this.close();
@@ -463,7 +597,9 @@ export class CreateFileModal extends Modal {
 			}
 		} catch (err) {
 			const msg =
-				err instanceof Error ? err.message : t("modal.failedToCreateFile");
+				err instanceof Error
+					? err.message
+					: t("modal.failedToCreateFile");
 			new Notice(msg);
 		}
 	}
@@ -524,7 +660,9 @@ export class DeleteConfirmModal extends Modal {
 		const btnRow = this.contentEl.createDiv({
 			cls: "yearly-planner-modal-buttons",
 		});
-		const cancelBtn = btnRow.createEl("button", { text: t("modal.cancel") });
+		const cancelBtn = btnRow.createEl("button", {
+			text: t("modal.cancel"),
+		});
 		cancelBtn.onclick = () => this.close();
 		const deleteBtn = btnRow.createEl("button", {
 			text: t("modal.delete"),
@@ -541,6 +679,10 @@ export class FileOptionsModal extends Modal {
 	private colorInput!: HTMLInputElement;
 	private colorPickerInput!: HTMLInputElement;
 	private colorPresetBtns: HTMLButtonElement[] = [];
+	private colorPresets: { hex: string }[] = [];
+	private todoCheckbox!: HTMLInputElement;
+	private completedCheckbox!: HTMLInputElement;
+	private completedRow!: HTMLElement;
 	private previewComponent: Component | null = null;
 	private startDateInput?: HTMLInputElement;
 	private endDateInput?: HTMLInputElement;
@@ -572,8 +714,40 @@ export class FileOptionsModal extends Modal {
 		const previewEl = previewWrap.createDiv({
 			cls: "yearly-planner-file-preview",
 		});
-		previewEl.createSpan({ text: t("modal.previewLoading"), cls: "yearly-planner-file-preview-loading" });
+		previewEl.createSpan({
+			text: t("modal.previewLoading"),
+			cls: "yearly-planner-file-preview-loading",
+		});
 		void this.loadPreview(previewEl);
+
+		const todoSection = this.contentEl.createDiv({
+			cls: "yearly-planner-create-file-modal",
+		});
+		const todoRow = todoSection.createDiv({
+			cls: "yearly-planner-create-file-row",
+		});
+		this.todoCheckbox = todoRow.createEl("input", {
+			type: "checkbox",
+			cls: "yearly-planner-todo-checkbox",
+		});
+		this.todoCheckbox.checked = isTodoFile(this.app, this.file);
+		const todoLabel = todoRow.createEl("label");
+		todoLabel.appendChild(this.todoCheckbox);
+		todoLabel.appendText(` ${t("modal.todoFile")}`);
+		this.todoCheckbox.onchange = () => this.updateCompletedRowVisibility();
+
+		this.completedRow = todoSection.createDiv({
+			cls: "yearly-planner-create-file-row yearly-planner-completed-row",
+		});
+		this.completedCheckbox = this.completedRow.createEl("input", {
+			type: "checkbox",
+			cls: "yearly-planner-completed-checkbox",
+		});
+		this.completedCheckbox.checked = isTodoCompleted(this.app, this.file);
+		const completedLabel = this.completedRow.createEl("label");
+		completedLabel.appendChild(this.completedCheckbox);
+		completedLabel.appendText(` ${t("modal.completed")}`);
+		this.updateCompletedRowVisibility();
 
 		const rangeParsed = parseRangeBasename(this.file.basename);
 		const singleParsed =
@@ -615,6 +789,8 @@ export class FileOptionsModal extends Modal {
 			}
 		}
 
+		this.colorPresets = getChipColorPresets();
+		const defaultColor = this.colorPresets[0]!.hex;
 		const colorRow = this.contentEl.createDiv({
 			cls: "yearly-planner-create-file-row",
 		});
@@ -625,9 +801,8 @@ export class FileOptionsModal extends Modal {
 		const presetsEl = colorPresetsWrap.createDiv({
 			cls: "yearly-planner-color-presets",
 		});
-		const currentColor =
-			getChipColor(this.app, this.file) ?? CHIP_COLOR_PRESETS[1]?.hex ?? "#22c55e";
-		CHIP_COLOR_PRESETS.forEach((preset) => {
+		const currentColor = getChipColor(this.app, this.file) ?? defaultColor;
+		this.colorPresets.forEach((preset) => {
 			const btn = presetsEl.createEl("button", {
 				cls: "yearly-planner-color-preset-btn",
 				attr: { type: "button" },
@@ -643,7 +818,7 @@ export class FileOptionsModal extends Modal {
 			cls: "yearly-planner-color-picker",
 		});
 		this.colorPickerInput.value =
-			toHex6(currentColor) ?? currentColor ?? "#22c55e";
+			toHex6(currentColor) ?? currentColor ?? defaultColor;
 		this.colorPickerInput.title = t("modal.pickColor");
 		this.colorPickerInput.oninput = () => {
 			this.colorInput.value = this.colorPickerInput.value;
@@ -654,7 +829,7 @@ export class FileOptionsModal extends Modal {
 			cls: "yearly-planner-filename-input",
 		});
 		this.colorInput.value = currentColor;
-		this.colorInput.placeholder = "#22c55e";
+		this.colorInput.placeholder = defaultColor;
 		this.colorInput.title = t("modal.chipColorTitle");
 		this.colorInput.oninput = () => this.syncColorFromText();
 		this.updateColorPresetActive();
@@ -696,11 +871,17 @@ export class FileOptionsModal extends Modal {
 	}
 
 	private updateColorPresetActive(): void {
-		const val = this.colorInput.value.trim().toLowerCase();
-		CHIP_COLOR_PRESETS.forEach((preset, i) => {
+		const val = this.colorInput.value.trim();
+		const normalizedVal = normalizeColorToHex(val) ?? val.toLowerCase();
+		this.colorPresets.forEach((preset, i) => {
 			const btn = this.colorPresetBtns[i];
-			btn?.toggleClass("is-active", val === preset.hex.toLowerCase());
+			const presetHex = (toHex6(preset.hex) ?? preset.hex).toLowerCase();
+			btn?.toggleClass("is-active", normalizedVal === presetHex);
 		});
+	}
+
+	private updateCompletedRowVisibility(): void {
+		this.completedRow.toggleClass("is-hidden", !this.todoCheckbox.checked);
 	}
 
 	private async handleApplyChange(): Promise<void> {
@@ -713,7 +894,13 @@ export class FileOptionsModal extends Modal {
 			const year = parseInt(m[1] ?? "", 10);
 			const month = parseInt(m[2] ?? "", 10);
 			const day = parseInt(m[3] ?? "", 10);
-			const result = await moveFileToDate(this.app, this.file, year, month, day);
+			const result = await moveFileToDate(
+				this.app,
+				this.file,
+				year,
+				month,
+				day,
+			);
 			if (result === null) {
 				new Notice(t("modal.dateChangeConflict"));
 				return;
@@ -748,14 +935,25 @@ export class FileOptionsModal extends Modal {
 			fileToUpdate = result;
 		}
 
-		const color = this.colorInput.value.trim() || undefined;
+		const rawColor = this.colorInput.value.trim();
+		const themeHex = getThemeAccentHex().toLowerCase();
+		const color =
+			rawColor &&
+			(toHex6(rawColor) ?? rawColor).toLowerCase() !== themeHex
+				? rawColor
+				: undefined;
+		const todo = this.todoCheckbox.checked;
+		const completed = this.completedCheckbox.checked;
 		try {
 			await updateFileColor(this.app, fileToUpdate, color);
+			await updateFileTodoStatus(this.app, fileToUpdate, todo, completed);
 			this.onClosed();
 			this.close();
 		} catch (err) {
 			const msg =
-				err instanceof Error ? err.message : t("modal.failedToCreateFile");
+				err instanceof Error
+					? err.message
+					: t("modal.failedToCreateFile");
 			new Notice(msg);
 		}
 	}

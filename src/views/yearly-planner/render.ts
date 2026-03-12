@@ -5,6 +5,8 @@ import {
 	MONTH_LABELS_EN,
 	WEEKEND_LABELS_KO,
 	WEEKEND_LABELS_EN,
+	TODO_CHIP_EMOJI_COMPLETED,
+	TODO_CHIP_EMOJI_INCOMPLETE,
 } from "../../constants";
 import { getDaysInMonth, getDayOfWeek } from "../../utils/date";
 import type { ChipDragState, DragState } from "./types";
@@ -14,6 +16,8 @@ import {
 	getFilesForDate,
 	getFileTitle,
 	getChipColor,
+	isTodoCompleted,
+	isTodoFile,
 } from "./file-utils";
 import { parseRangeBasename } from "../../utils/range";
 import { isDateInSelection } from "./selection";
@@ -198,7 +202,15 @@ export function createPlannerCell(
 			const linkEl = listEl.createEl("div", {
 				cls: "yearly-planner-cell-file",
 			});
-			linkEl.textContent = getFileTitle(ctx.app, file);
+			const title = getFileTitle(ctx.app, file);
+			if (isTodoCompleted(ctx.app, file)) {
+				linkEl.addClass("yearly-planner-chip-completed");
+				linkEl.textContent = `${TODO_CHIP_EMOJI_COMPLETED} ${title}`;
+			} else if (isTodoFile(ctx.app, file)) {
+				linkEl.textContent = `${TODO_CHIP_EMOJI_INCOMPLETE} ${title}`;
+			} else {
+				linkEl.textContent = title;
+			}
 			linkEl.title = file.path;
 			linkEl.dataset.path = file.path;
 			const chipColor = getChipColor(ctx.app, file);

@@ -159,6 +159,7 @@ export async function createRangeFile(
 	folder: string,
 	basename: string,
 	color?: string,
+	todo?: boolean,
 ): Promise<TFile> {
 	const cleanBasename = basename.trim().replace(/\.md$/i, "");
 	const parsed = parseRangeBasename(cleanBasename);
@@ -183,10 +184,11 @@ export async function createRangeFile(
 	const colorLine = color?.trim()
 		? `color: "${color.trim().replace(/"/g, '\\"')}"\n`
 		: "";
+	const todoLine = todo ? "todo: true\ncompleted: false\n" : "";
 	const content = `---
 date_start: ${startStr}
 date_end: ${endStr}
-${colorLine}
+${colorLine}${todoLine}
 ---
 
 # ${heading}
@@ -209,6 +211,7 @@ export async function createSingleDateFile(
 	folder: string,
 	basename: string,
 	color?: string,
+	todo?: boolean,
 ): Promise<TFile> {
 	const trimmed = (folder || "Planner").trim();
 	const cleanBasename = basename.trim().replace(/\.md$/i, "") || "untitled";
@@ -227,15 +230,46 @@ export async function createSingleDateFile(
 	const parsed = parseSingleDateBasename(cleanBasename);
 	const heading =
 		parsed?.suffix ?? parsed?.date ?? cleanBasename;
-	const colorBlock = color?.trim()
-		? `---
-color: "${color.trim().replace(/"/g, '\\"')}"
----
-
-`
-		: "";
-	const content = `${colorBlock}# ${heading}\n\n`;
+	const needsFrontmatter = color?.trim() || todo;
+	const lines: string[] = [];
+	if (needsFrontmatter) {
+		lines.push("---");
+		if (color?.trim()) {
+			lines.push(`color: "${color.trim().replace(/"/g, '\\"')}"`);
+		}
+		if (todo) {
+			lines.push("todo: true");
+			lines.push("completed: false");
+		}
+		lines.push("---");
+		lines.push("");
+	}
+	const content = `${lines.join("\n")}# ${heading}\n\n`;
 	return app.vault.create(path, content);
+}
+
+/**
+ * Update todo and completed status in a file's frontmatter.
+ * When todo is false/undefined, removes both todo and completed.
+ */
+export async function updateFileTodoStatus(
+	app: App,
+	file: TFile,
+	todo?: boolean,
+	completed?: boolean,
+): Promise<void> {
+	await app.fileManager.processFrontMatter(
+		file,
+		(frontmatter: Record<string, unknown>) => {
+			if (!todo) {
+				delete frontmatter.todo;
+				delete frontmatter.completed;
+			} else {
+				frontmatter.todo = true;
+				frontmatter.completed = completed === true;
+			}
+		},
+	);
 }
 
 /**

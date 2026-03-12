@@ -243,6 +243,27 @@ export function getFileTitle(app: App, file: TFile): string {
 	return file.basename;
 }
 
+/** Returns true if the file is marked as a todo file in frontmatter. */
+export function isTodoFile(app: App, file: TFile): boolean {
+	const cache = app.metadataCache.getFileCache(file);
+	const raw: unknown = cache?.frontmatter?.todo;
+	if (raw === true || raw === "true") return true;
+	if (typeof raw === "string" && raw.trim().toLowerCase() === "true")
+		return true;
+	return false;
+}
+
+/** Returns true only when todo is true and completed is true in frontmatter. */
+export function isTodoCompleted(app: App, file: TFile): boolean {
+	if (!isTodoFile(app, file)) return false;
+	const cache = app.metadataCache.getFileCache(file);
+	const raw: unknown = cache?.frontmatter?.completed;
+	if (raw === true || raw === "true") return true;
+	if (typeof raw === "string" && raw.trim().toLowerCase() === "true")
+		return true;
+	return false;
+}
+
 /** Returns chip color from frontmatter if valid; otherwise null (use default). */
 export function getChipColor(app: App, file: TFile): string | null {
 	const cache = app.metadataCache.getFileCache(file);

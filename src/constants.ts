@@ -1,9 +1,14 @@
 export const VIEW_TYPE_YEARLY_PLANNER = "yearly-planner-view";
 export const VIEW_TYPE_MONTHLY_PLANNER = "monthly-planner-view";
 
+/** Todo chip emoji: completed */
+export const TODO_CHIP_EMOJI_COMPLETED = "✅";
+/** Todo chip emoji: not completed */
+export const TODO_CHIP_EMOJI_INCOMPLETE = "🫥";
+
 export const MONTH_LABELS_KO = [
-	"1월", "2월", "3월", "4월", "5월", "6월",
-	"7월", "8월", "9월", "10월", "11월", "12월",
+	"1", "2", "3", "4", "5", "6",
+	"7", "8", "9", "10", "11", "12",
 ] as const;
 
 export const MONTH_LABELS_EN = [

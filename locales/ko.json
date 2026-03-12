@@ -38,6 +38,8 @@
 	"modal.suffixAsTitle": "suffix는 파일 제목(#)으로 사용됩니다",
 	"modal.suffixExample": "예: 2026-02-27-meeting",
 	"modal.color": "색상",
+	"modal.todoFile": "Todo 용 파일",
+	"modal.completed": "완료",
 	"modal.pickColor": "색상 선택",
 	"modal.chipColorTitle": "칩 색상 (hex, rgb 또는 색상 이름)",
 	"modal.enterYear": "연도 입력",

@@ -38,6 +38,8 @@
 	"modal.suffixAsTitle": "Suffix is used as the file title (#)",
 	"modal.suffixExample": "e.g. 2026-02-27-meeting",
 	"modal.color": "Color",
+	"modal.todoFile": "Todo file",
+	"modal.completed": "Completed",
 	"modal.pickColor": "Pick color",
 	"modal.chipColorTitle": "Chip color (hex, rgb, or color name)",
 	"modal.enterYear": "Enter year",
