@@ -264,6 +264,24 @@ export function isTodoCompleted(app: App, file: TFile): boolean {
 	return false;
 }
 
+/**
+ * Reminder clock on the event day: minutes from local midnight (0–1439), from frontmatter `notify_minutes`.
+ * Range notes use the start date as the event day.
+ */
+export function getNotifyMinutes(app: App, file: TFile): number | null {
+	const cache = app.metadataCache.getFileCache(file);
+	const raw: unknown = cache?.frontmatter?.notify_minutes;
+	if (raw == null || raw === "") return null;
+	const n =
+		typeof raw === "number"
+			? raw
+			: typeof raw === "string"
+				? parseInt(raw.trim(), 10)
+				: NaN;
+	if (!Number.isFinite(n) || n < 0 || n > 1439) return null;
+	return Math.round(n);
+}
+
 /** Returns chip color from frontmatter if valid; otherwise null (use default). */
 export function getChipColor(app: App, file: TFile): string | null {
 	const cache = app.metadataCache.getFileCache(file);

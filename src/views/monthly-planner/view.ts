@@ -431,10 +431,24 @@ export class MonthlyPlannerView
 		new CreateFileModal(this.app, {
 			bounds,
 			defaultFolder,
-			createSingleDateFile: (folder, basename, color, todo) =>
-				createSingleDateFileOp(this.app, folder, basename, color, todo),
-			createRangeFile: (folder, basename, color, todo) =>
-				createRangeFileOp(this.app, folder, basename, color, todo),
+			createSingleDateFile: (folder, basename, color, todo, notifyMinutes) =>
+				createSingleDateFileOp(
+					this.app,
+					folder,
+					basename,
+					color,
+					todo,
+					notifyMinutes,
+				),
+			createRangeFile: (folder, basename, color, todo, notifyMinutes) =>
+				createRangeFileOp(
+					this.app,
+					folder,
+					basename,
+					color,
+					todo,
+					notifyMinutes,
+				),
 			onCreated: () => this.render(),
 		}).open();
 	}

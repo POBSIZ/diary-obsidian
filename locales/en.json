@@ -39,6 +39,8 @@
 	"modal.suffixExample": "e.g. 2026-02-27-meeting",
 	"modal.color": "Color",
 	"modal.todoFile": "Todo file",
+	"modal.notifyTime": "Reminder time",
+	"modal.notifyTimeDesc": "Local time on the event day (saved as notify_minutes in frontmatter). Leave empty for no reminder.",
 	"modal.completed": "Completed",
 	"modal.pickColor": "Pick color",
 	"modal.chipColorTitle": "Chip color (hex, rgb, or color name)",
@@ -99,5 +101,6 @@
 	"planNote.expand": "Expand preview",
 	"planNote.emptyHint": "No plan note for {label} yet.",
 	"planNote.emptyContent": "Empty file — click to edit",
-	"chipDrag.targetExists": "A file already exists for that date."
+	"chipDrag.targetExists": "A file already exists for that date.",
+	"notify.plannerReminder": "Planner reminder: {title}"
 }

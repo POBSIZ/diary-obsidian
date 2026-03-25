@@ -11,6 +11,7 @@ import { getLocale, t } from "../../i18n";
 import {
 	getAllFolderPaths,
 	getChipColor,
+	getNotifyMinutes,
 	isTodoCompleted,
 	isTodoFile,
 } from "./file-utils";
@@ -19,6 +20,7 @@ import {
 	moveRangeFileToNewDates,
 	parseSingleDateBasename,
 	updateFileColor,
+	updateFileNotifyMinutes,
 	updateFileTodoStatus,
 } from "./file-operations";
 import { parseRangeBasename } from "../../utils/range";
@@ -151,6 +153,7 @@ export type CreateSingleDateFileWithFolderFn = (
 	basename: string,
 	color?: string,
 	todo?: boolean,
+	notifyMinutes?: number | null,
 ) => Promise<TFile>;
 
 export type CreateRangeFileWithFolderFn = (
@@ -158,6 +161,7 @@ export type CreateRangeFileWithFolderFn = (
 	basename: string,
 	color?: string,
 	todo?: boolean,
+	notifyMinutes?: number | null,
 ) => Promise<TFile>;
 
 function formatHolidayDate(dateStr: string): string {
@@ -212,6 +216,33 @@ export class HolidayInfoModal extends Modal {
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+function notifyMinutesToTimeValue(mins: number | null): string {
+	if (mins == null) return "";
+	const h = Math.floor(mins / 60);
+	const m = mins % 60;
+	return `${pad(h)}:${pad(m)}`;
+}
+
+function parseTimeValueToNotifyMinutes(value: string): number | null {
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+	const m = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+	if (!m) return null;
+	const h = parseInt(m[1] ?? "", 10);
+	const min = parseInt(m[2] ?? "", 10);
+	if (
+		isNaN(h) ||
+		isNaN(min) ||
+		h < 0 ||
+		h > 23 ||
+		min < 0 ||
+		min > 59
+	) {
+		return null;
+	}
+	return h * 60 + min;
+}
+
 function toDateStr(year: number, month: number, day: number): string {
 	return `${year}-${pad(month)}-${pad(day)}`;
 }
@@ -253,6 +284,7 @@ export class CreateFileModal extends Modal {
 	private colorPresetBtns: HTMLButtonElement[] = [];
 	private colorPresets: { hex: string }[] = [];
 	private todoCheckbox!: HTMLInputElement;
+	private notifyTimeInput!: HTMLInputElement;
 	private rangeRow!: HTMLElement;
 	private singleModeBtn!: HTMLButtonElement;
 	private rangeModeBtn!: HTMLButtonElement;
@@ -465,6 +497,20 @@ export class CreateFileModal extends Modal {
 		todoLabel.appendChild(this.todoCheckbox);
 		todoLabel.appendText(` ${t("modal.todoFile")}`);
 
+		const notifyRow = form.createDiv({
+			cls: "yearly-planner-create-file-row",
+		});
+		notifyRow.createEl("label", { text: t("modal.notifyTime") });
+		this.notifyTimeInput = notifyRow.createEl("input", {
+			type: "time",
+			cls: "yearly-planner-date-input",
+		});
+		this.notifyTimeInput.title = t("modal.notifyTimeDesc");
+		notifyRow.createDiv({
+			cls: "yearly-planner-create-file-hint",
+			text: t("modal.notifyTimeDesc"),
+		});
+
 		this.syncFilename();
 		this.updateModeUI();
 
@@ -566,11 +612,15 @@ export class CreateFileModal extends Modal {
 						? rawColor
 						: undefined;
 				const todo = this.todoCheckbox.checked;
+				const notifyMinutes = parseTimeValueToNotifyMinutes(
+					this.notifyTimeInput.value,
+				);
 				const file = await this.options.createSingleDateFile(
 					folder,
 					filename,
 					color,
 					todo,
+					notifyMinutes,
 				);
 				this.options.onCreated();
 				this.close();
@@ -585,11 +635,15 @@ export class CreateFileModal extends Modal {
 						? rawColor
 						: undefined;
 				const todo = this.todoCheckbox.checked;
+				const notifyMinutes = parseTimeValueToNotifyMinutes(
+					this.notifyTimeInput.value,
+				);
 				const file = await this.options.createRangeFile(
 					folder,
 					filename,
 					color,
 					todo,
+					notifyMinutes,
 				);
 				this.options.onCreated();
 				this.close();
@@ -681,6 +735,7 @@ export class FileOptionsModal extends Modal {
 	private colorPresetBtns: HTMLButtonElement[] = [];
 	private colorPresets: { hex: string }[] = [];
 	private todoCheckbox!: HTMLInputElement;
+	private notifyTimeInput!: HTMLInputElement;
 	private completedCheckbox!: HTMLInputElement;
 	private completedRow!: HTMLElement;
 	private previewComponent: Component | null = null;
@@ -748,6 +803,22 @@ export class FileOptionsModal extends Modal {
 		completedLabel.appendChild(this.completedCheckbox);
 		completedLabel.appendText(` ${t("modal.completed")}`);
 		this.updateCompletedRowVisibility();
+
+		const notifyRow = todoSection.createDiv({
+			cls: "yearly-planner-create-file-row",
+		});
+		notifyRow.createEl("label", { text: t("modal.notifyTime") });
+		this.notifyTimeInput = notifyRow.createEl("input", {
+			type: "time",
+			cls: "yearly-planner-date-input",
+		});
+		this.notifyTimeInput.title = t("modal.notifyTimeDesc");
+		const existingNotify = getNotifyMinutes(this.app, this.file);
+		this.notifyTimeInput.value = notifyMinutesToTimeValue(existingNotify);
+		notifyRow.createDiv({
+			cls: "yearly-planner-create-file-hint",
+			text: t("modal.notifyTimeDesc"),
+		});
 
 		const rangeParsed = parseRangeBasename(this.file.basename);
 		const singleParsed =
@@ -947,6 +1018,11 @@ export class FileOptionsModal extends Modal {
 		try {
 			await updateFileColor(this.app, fileToUpdate, color);
 			await updateFileTodoStatus(this.app, fileToUpdate, todo, completed);
+			await updateFileNotifyMinutes(
+				this.app,
+				fileToUpdate,
+				parseTimeValueToNotifyMinutes(this.notifyTimeInput.value),
+			);
 			this.onClosed();
 			this.close();
 		} catch (err) {

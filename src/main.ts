@@ -8,6 +8,7 @@ import {
 import { VIEW_TYPE_YEARLY_PLANNER, VIEW_TYPE_MONTHLY_PLANNER } from "./constants";
 import { YearlyPlannerView } from "./views/yearly-planner/view";
 import { MonthlyPlannerView } from "./views/monthly-planner/view";
+import { registerPlannerReminders } from "./planner-reminders";
 
 export default class DiaryObsidian extends Plugin {
 	settings: DiaryObsidianSettings;
@@ -52,6 +53,8 @@ export default class DiaryObsidian extends Plugin {
 		});
 
 		this.addSettingTab(new DiaryObsidianSettingTab(this.app, this));
+
+		registerPlannerReminders(this);
 
 		const debouncedRefresh = this.debounce(() => {
 			this.refreshYearlyPlannerViews();

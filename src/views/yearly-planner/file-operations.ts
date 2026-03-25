@@ -160,6 +160,7 @@ export async function createRangeFile(
 	basename: string,
 	color?: string,
 	todo?: boolean,
+	notifyMinutes?: number | null,
 ): Promise<TFile> {
 	const cleanBasename = basename.trim().replace(/\.md$/i, "");
 	const parsed = parseRangeBasename(cleanBasename);
@@ -185,10 +186,18 @@ export async function createRangeFile(
 		? `color: "${color.trim().replace(/"/g, '\\"')}"\n`
 		: "";
 	const todoLine = todo ? "todo: true\ncompleted: false\n" : "";
+	const hasNotify =
+		notifyMinutes != null &&
+		Number.isFinite(notifyMinutes) &&
+		notifyMinutes >= 0 &&
+		notifyMinutes <= 1439;
+	const notifyLine = hasNotify
+		? `notify_minutes: ${Math.round(notifyMinutes)}\n`
+		: "";
 	const content = `---
 date_start: ${startStr}
 date_end: ${endStr}
-${colorLine}${todoLine}
+${colorLine}${todoLine}${notifyLine}
 ---
 
 # ${heading}
@@ -206,12 +215,22 @@ export function parseSingleDateBasename(
 	return { date: m[1] ?? "", suffix: m[2] ?? undefined };
 }
 
+/** First calendar day for planner chips: range start, or single date. */
+export function getPlannerEventDateString(file: TFile): string | null {
+	const clean = file.basename.replace(/\.md$/i, "");
+	const rangeParsed = parseRangeBasename(clean);
+	if (rangeParsed) return rangeParsed.start;
+	const singleParsed = parseSingleDateBasename(clean);
+	return singleParsed?.date ?? null;
+}
+
 export async function createSingleDateFile(
 	app: App,
 	folder: string,
 	basename: string,
 	color?: string,
 	todo?: boolean,
+	notifyMinutes?: number | null,
 ): Promise<TFile> {
 	const trimmed = (folder || "Planner").trim();
 	const cleanBasename = basename.trim().replace(/\.md$/i, "") || "untitled";
@@ -230,7 +249,12 @@ export async function createSingleDateFile(
 	const parsed = parseSingleDateBasename(cleanBasename);
 	const heading =
 		parsed?.suffix ?? parsed?.date ?? cleanBasename;
-	const needsFrontmatter = color?.trim() || todo;
+	const hasNotify =
+		notifyMinutes != null &&
+		Number.isFinite(notifyMinutes) &&
+		notifyMinutes >= 0 &&
+		notifyMinutes <= 1439;
+	const needsFrontmatter = color?.trim() || todo || hasNotify;
 	const lines: string[] = [];
 	if (needsFrontmatter) {
 		lines.push("---");
@@ -240,6 +264,9 @@ export async function createSingleDateFile(
 		if (todo) {
 			lines.push("todo: true");
 			lines.push("completed: false");
+		}
+		if (hasNotify) {
+			lines.push(`notify_minutes: ${Math.round(notifyMinutes)}`);
 		}
 		lines.push("---");
 		lines.push("");
@@ -290,6 +317,29 @@ export async function updateFileColor(
 				frontmatter.color = trimmed;
 			} else {
 				delete frontmatter.color;
+			}
+		},
+	);
+}
+
+/** Persist reminder time as minutes from local midnight (0–1439), or remove when null. */
+export async function updateFileNotifyMinutes(
+	app: App,
+	file: TFile,
+	minutes: number | null,
+): Promise<void> {
+	await app.fileManager.processFrontMatter(
+		file,
+		(frontmatter: Record<string, unknown>) => {
+			if (
+				minutes == null ||
+				!Number.isFinite(minutes) ||
+				minutes < 0 ||
+				minutes > 1439
+			) {
+				delete frontmatter.notify_minutes;
+			} else {
+				frontmatter.notify_minutes = Math.round(minutes);
 			}
 		},
 	);

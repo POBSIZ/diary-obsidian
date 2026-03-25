@@ -39,6 +39,8 @@
 	"modal.suffixExample": "예: 2026-02-27-meeting",
 	"modal.color": "색상",
 	"modal.todoFile": "Todo 용 파일",
+	"modal.notifyTime": "알림 시간",
+	"modal.notifyTimeDesc": "일정이 있는 날의 로컬 시각(프론트매터 notify_minutes로 저장). 비우면 알림 없음.",
 	"modal.completed": "완료",
 	"modal.pickColor": "색상 선택",
 	"modal.chipColorTitle": "칩 색상 (hex, rgb 또는 색상 이름)",
@@ -99,5 +101,6 @@
 	"planNote.expand": "미리보기 펼치기",
 	"planNote.emptyHint": "{label} 플랜 노트가 없습니다.",
 	"planNote.emptyContent": "빈 파일 — 클릭하여 편집",
-	"chipDrag.targetExists": "해당 날짜에 이미 파일이 있습니다."
+	"chipDrag.targetExists": "해당 날짜에 이미 파일이 있습니다.",
+	"notify.plannerReminder": "플래너 알림: {title}"
 }
