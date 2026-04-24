@@ -5,9 +5,14 @@ import {
 	DiaryObsidianSettings,
 	DiaryObsidianSettingTab,
 } from "./settings";
-import { VIEW_TYPE_YEARLY_PLANNER, VIEW_TYPE_MONTHLY_PLANNER } from "./constants";
+import {
+	VIEW_TYPE_YEARLY_PLANNER,
+	VIEW_TYPE_MONTHLY_PLANNER,
+	VIEW_TYPE_MONTHLY_LIST_PLANNER,
+} from "./constants";
 import { YearlyPlannerView } from "./views/yearly-planner/view";
 import { MonthlyPlannerView } from "./views/monthly-planner/view";
+import { MonthlyListPlannerView } from "./views/monthly-list-planner/view";
 import { registerPlannerReminders } from "./planner-reminders";
 
 export default class DiaryObsidian extends Plugin {
@@ -25,6 +30,10 @@ export default class DiaryObsidian extends Plugin {
 			VIEW_TYPE_MONTHLY_PLANNER,
 			(leaf) => new MonthlyPlannerView(leaf, this),
 		);
+		this.registerView(
+			VIEW_TYPE_MONTHLY_LIST_PLANNER,
+			(leaf) => new MonthlyListPlannerView(leaf, this),
+		);
 
 		this.addRibbonIcon(
 			"calendar-range",
@@ -40,6 +49,13 @@ export default class DiaryObsidian extends Plugin {
 				void this.activateMonthlyPlanner();
 			},
 		);
+		this.addRibbonIcon(
+			"list",
+			t("ribbon.openMonthlyListPlanner"),
+			() => {
+				void this.activateMonthlyListPlanner();
+			},
+		);
 
 		this.addCommand({
 			id: "open-yearly-planner",
@@ -51,6 +67,11 @@ export default class DiaryObsidian extends Plugin {
 			name: t("command.openMonthlyPlanner"),
 			callback: () => void this.activateMonthlyPlanner(),
 		});
+		this.addCommand({
+			id: "open-monthly-list-planner",
+			name: t("command.openMonthlyListPlanner"),
+			callback: () => void this.activateMonthlyListPlanner(),
+		});
 
 		this.addSettingTab(new DiaryObsidianSettingTab(this.app, this));
 
@@ -59,6 +80,7 @@ export default class DiaryObsidian extends Plugin {
 		const debouncedRefresh = this.debounce(() => {
 			this.refreshYearlyPlannerViews();
 			this.refreshMonthlyPlannerViews();
+			this.refreshMonthlyListPlannerViews();
 		}, 150);
 
 		this.registerEvent(
@@ -82,6 +104,7 @@ export default class DiaryObsidian extends Plugin {
 					lastCheckedDate = today;
 					this.refreshYearlyPlannerViews();
 					this.refreshMonthlyPlannerViews();
+					this.refreshMonthlyListPlannerViews();
 				}
 			}, 60_000),
 		);
@@ -111,6 +134,17 @@ export default class DiaryObsidian extends Plugin {
 		await workspace.revealLeaf(leaf);
 	}
 
+	async activateMonthlyListPlanner(): Promise<void> {
+		const { workspace } = this.app;
+		const now = new Date();
+		const leaf = workspace.getLeaf();
+		await leaf.setViewState({
+			type: VIEW_TYPE_MONTHLY_LIST_PLANNER,
+			state: { year: now.getFullYear(), month: now.getMonth() + 1 },
+		});
+		await workspace.revealLeaf(leaf);
+	}
+
 	/** Switch leaf to monthly planner. Reuses the same leaf. */
 	async switchToMonthly(
 		leaf: WorkspaceLeaf,
@@ -119,6 +153,19 @@ export default class DiaryObsidian extends Plugin {
 	): Promise<void> {
 		await leaf.setViewState({
 			type: VIEW_TYPE_MONTHLY_PLANNER,
+			state: { year, month },
+		});
+		await this.app.workspace.revealLeaf(leaf);
+	}
+
+	/** Switch leaf to monthly list planner. Reuses the same leaf. */
+	async switchToMonthlyList(
+		leaf: WorkspaceLeaf,
+		year: number,
+		month: number,
+	): Promise<void> {
+		await leaf.setViewState({
+			type: VIEW_TYPE_MONTHLY_LIST_PLANNER,
 			state: { year, month },
 		});
 		await this.app.workspace.revealLeaf(leaf);
@@ -146,6 +193,7 @@ export default class DiaryObsidian extends Plugin {
 		await this.saveData(this.settings);
 		this.refreshYearlyPlannerViews();
 		this.refreshMonthlyPlannerViews();
+		this.refreshMonthlyListPlannerViews();
 	}
 
 	/** Toggle plan note panel expanded state and persist. */
@@ -174,6 +222,18 @@ export default class DiaryObsidian extends Plugin {
 		for (const leaf of leaves) {
 			const view = leaf.view;
 			if (view instanceof MonthlyPlannerView) {
+				view.render();
+			}
+		}
+	}
+
+	refreshMonthlyListPlannerViews(): void {
+		const leaves = this.app.workspace.getLeavesOfType(
+			VIEW_TYPE_MONTHLY_LIST_PLANNER,
+		);
+		for (const leaf of leaves) {
+			const view = leaf.view;
+			if (view instanceof MonthlyListPlannerView) {
 				view.render();
 			}
 		}

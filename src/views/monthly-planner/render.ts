@@ -32,6 +32,10 @@ export interface MonthlyHeaderCallbacks {
 	onAddFile?: () => void;
 	onResetZoom?: () => void;
 	onSwitchToYearly?: () => void;
+	/** Monthly grid → list layout */
+	onSwitchToListView?: () => void;
+	/** Monthly list → grid layout */
+	onSwitchToGridView?: () => void;
 }
 
 export function renderMonthlyPlannerHeader(
@@ -41,12 +45,14 @@ export function renderMonthlyPlannerHeader(
 		month: number;
 		monthLabel: string;
 		app: App;
+		/** Overrides default monthly planner title (e.g. list view) */
+		viewTitle?: string;
 	},
 	callbacks: MonthlyHeaderCallbacks,
 ): void {
 	const header = contentEl.createDiv({ cls: "monthly-planner-header" });
 	header.createEl("h1", {
-		text: t("view.monthlyTitle"),
+		text: ctx.viewTitle ?? t("view.monthlyTitle"),
 		cls: "monthly-planner-title",
 	});
 
@@ -96,6 +102,24 @@ export function renderMonthlyPlannerHeader(
 		setIcon(yearBtn, "calendar-range");
 		yearBtn.ariaLabel = t("header.switchToYearly");
 		yearBtn.onclick = callbacks.onSwitchToYearly;
+	}
+
+	if (callbacks.onSwitchToListView) {
+		const listBtn = navWrapper.createEl("button", {
+			cls: "monthly-planner-nav-btn",
+		});
+		setIcon(listBtn, "list");
+		listBtn.ariaLabel = t("header.switchToListView");
+		listBtn.onclick = callbacks.onSwitchToListView;
+	}
+
+	if (callbacks.onSwitchToGridView) {
+		const gridBtn = navWrapper.createEl("button", {
+			cls: "monthly-planner-nav-btn",
+		});
+		setIcon(gridBtn, "calendar");
+		gridBtn.ariaLabel = t("header.switchToGridView");
+		gridBtn.onclick = callbacks.onSwitchToGridView;
 	}
 
 	if (callbacks.onAddFile) {

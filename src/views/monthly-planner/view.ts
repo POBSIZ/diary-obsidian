@@ -304,6 +304,13 @@ export class MonthlyPlannerView
 				onSwitchToYearly: () => {
 					void this.plugin.switchToYearly(this.leaf, this.year);
 				},
+				onSwitchToListView: () => {
+					void this.plugin.switchToMonthlyList(
+						this.leaf,
+						this.year,
+						this.month,
+					);
+				},
 			},
 		);
 	}

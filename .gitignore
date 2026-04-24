@@ -23,3 +23,6 @@ data.json
 
 # Exclude Cursor plans
 .cursor
+
+# Local backup of incomplete nested .git (see repo setup)
+.git.broken
