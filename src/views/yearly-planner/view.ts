@@ -1,4 +1,4 @@
-import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, TFile, WorkspaceLeaf } from "obsidian";
 import { t } from "../../i18n";
 import DiaryObsidian from "../../main";
 import { VIEW_TYPE_YEARLY_PLANNER } from "../../constants";
@@ -34,6 +34,18 @@ import {
 	renderPlanNotePanel,
 	syncPlanNotePanelExpandedState,
 } from "../plan-note-panel";
+import {
+	copyPlannerSelectionToClipboard,
+	isPrimaryMod,
+	openPlannerClipboardSelectionTrashModal,
+	PLANNER_CLIPBOARD_BUSY_CLASS,
+	PLANNER_CLIPBOARD_ERROR_NOTICE_MS,
+	PLANNER_CLIPBOARD_SUCCESS_NOTICE_MS,
+	pastePlannerClipboard,
+	resolveClipboardSelectionToFiles,
+	shouldDeferPlannerClipboardToNative,
+	undoPlannerPasteBatch,
+} from "../planner-clipboard";
 
 export type { YearlyPlannerState } from "./types";
 
@@ -44,7 +56,14 @@ export class YearlyPlannerView
 	year: number;
 	dragState: DragState | null = null;
 	chipDragState: ChipDragState | null = null;
+	clipboardSelection = new Set<string>();
 	private interactionHandler: PlannerInteractionHandler;
+	private clipboardKeydownRegistered = false;
+	/** LIFO stack of paths created by each Cmd/Ctrl+V paste (for Cmd/Ctrl+Z undo). */
+	private pasteUndoBatches: string[][] = [];
+	private boundClipboardKeydown = (e: KeyboardEvent) => {
+		this.handleClipboardKeydown(e);
+	};
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -80,12 +99,20 @@ export class YearlyPlannerView
 	}
 
 	onOpen(): Promise<void> {
+		if (!this.clipboardKeydownRegistered) {
+			this.registerDomEvent(window, "keydown", this.boundClipboardKeydown, {
+				capture: true,
+			});
+			this.clipboardKeydownRegistered = true;
+		}
 		this.render();
 		return Promise.resolve();
 	}
 
 	onClose(): Promise<void> {
 		this.interactionHandler.clearDragListeners();
+		this.clipboardSelection.clear();
+		this.pasteUndoBatches.length = 0;
 		return Promise.resolve();
 	}
 
@@ -241,17 +268,8 @@ export class YearlyPlannerView
 					this.year = new Date().getFullYear();
 					this.render();
 				},
-				onSwitchToMonthly: () => {
-					const now = new Date();
-					const month =
-						this.year === now.getFullYear()
-							? now.getMonth() + 1
-							: 1;
-					void this.plugin.switchToMonthly(
-						this.leaf,
-						this.year,
-						month,
-					);
+				onCyclePlannerView: () => {
+					void this.plugin.cyclePlannerView(this.leaf);
 				},
 				onYearClick: (year) => {
 					this.year = year;
@@ -323,6 +341,7 @@ export class YearlyPlannerView
 			folder,
 			dragState: this.dragState,
 			chipDragState: this.chipDragState,
+			clipboardSelection: this.clipboardSelection,
 			holidaysData,
 			locale: this.plugin.settings.locale ?? "en",
 			rangeLaneMap,
@@ -393,5 +412,139 @@ export class YearlyPlannerView
 		new FileOptionsModal(this.app, file, this.leaf, () =>
 			this.render(),
 		).open();
+	}
+
+	private handleClipboardKeydown(e: KeyboardEvent): void {
+		if (!isPrimaryMod(e) || e.shiftKey) return;
+		if (shouldDeferPlannerClipboardToNative(e)) return;
+		if (this.app.workspace.getActiveViewOfType(YearlyPlannerView) !== this)
+			return;
+
+		const k = e.key.toLowerCase();
+
+		if (k === "backspace" || k === "delete") {
+			if (this.clipboardSelection.size === 0) return;
+			e.preventDefault();
+			openPlannerClipboardSelectionTrashModal(
+				this.app,
+				resolveClipboardSelectionToFiles(this.app, this.clipboardSelection),
+				this.clipboardSelection,
+				() => this.render(),
+			);
+			return;
+		}
+
+		if (k === "z") {
+			if (this.pasteUndoBatches.length === 0) {
+				new Notice(t("plannerClipboard.undoNothing"));
+				e.preventDefault();
+				return;
+			}
+			e.preventDefault();
+			const batch = this.pasteUndoBatches.pop()!;
+			this.contentEl.addClass(PLANNER_CLIPBOARD_BUSY_CLASS);
+			void (async () => {
+				try {
+					const u = await undoPlannerPasteBatch(this.app, batch);
+					this.render();
+					if (!u.ok) {
+						this.pasteUndoBatches.push(batch);
+						new Notice(
+							t(u.errorKey, { path: u.path }),
+							PLANNER_CLIPBOARD_ERROR_NOTICE_MS,
+						);
+					} else if (u.trashedCount === 0) {
+						new Notice(
+							t("plannerClipboard.undoMissingFiles"),
+							PLANNER_CLIPBOARD_ERROR_NOTICE_MS,
+						);
+					} else {
+						new Notice(
+							t("plannerClipboard.undoSuccess", {
+								count: u.trashedCount,
+							}),
+							PLANNER_CLIPBOARD_SUCCESS_NOTICE_MS,
+						);
+					}
+				} finally {
+					this.contentEl.removeClass(PLANNER_CLIPBOARD_BUSY_CLASS);
+				}
+			})();
+			return;
+		}
+
+		if (k !== "c" && k !== "v") return;
+
+		if (k === "c") {
+			const files = resolveClipboardSelectionToFiles(
+				this.app,
+				this.clipboardSelection,
+			);
+			if (files.length === 0) {
+				new Notice(t("plannerClipboard.emptyCopy"));
+				e.preventDefault();
+				return;
+			}
+			e.preventDefault();
+			this.contentEl.addClass(PLANNER_CLIPBOARD_BUSY_CLASS);
+			void (async () => {
+				try {
+					const r = await copyPlannerSelectionToClipboard(
+						this.app,
+						files,
+					);
+					if (!r.ok) {
+						new Notice(
+							t(r.errorKey),
+							PLANNER_CLIPBOARD_ERROR_NOTICE_MS,
+						);
+					} else {
+						new Notice(
+							t("plannerClipboard.copySuccess", {
+								count: r.noteCount,
+							}),
+							PLANNER_CLIPBOARD_SUCCESS_NOTICE_MS,
+						);
+					}
+				} finally {
+					this.contentEl.removeClass(PLANNER_CLIPBOARD_BUSY_CLASS);
+				}
+			})();
+			return;
+		}
+
+		if (this.clipboardSelection.size === 0) return;
+		e.preventDefault();
+		this.contentEl.addClass(PLANNER_CLIPBOARD_BUSY_CLASS);
+		void (async () => {
+			try {
+				const text = await navigator.clipboard.readText();
+				const r = await pastePlannerClipboard(
+					this.app,
+					this.plugin.settings.plannerFolder || "Planner",
+					text,
+					this.clipboardSelection,
+				);
+				if (r.ok) {
+					this.pasteUndoBatches.push(r.createdPaths);
+					this.render();
+					new Notice(
+						t("plannerClipboard.pasteSuccess", {
+							count: r.fileCount,
+						}),
+						PLANNER_CLIPBOARD_SUCCESS_NOTICE_MS,
+					);
+				} else {
+					new Notice(t(r.errorKey), PLANNER_CLIPBOARD_ERROR_NOTICE_MS);
+				}
+			} catch {
+				new Notice(
+					t("plannerClipboard.pasteReadFailed"),
+					PLANNER_CLIPBOARD_ERROR_NOTICE_MS,
+				);
+			} finally {
+				this.contentEl.removeClass(PLANNER_CLIPBOARD_BUSY_CLASS);
+			}
+		})();
 	}
 }

@@ -50,7 +50,7 @@ export default class DiaryObsidian extends Plugin {
 			},
 		);
 		this.addRibbonIcon(
-			"list",
+			"list-ordered",
 			t("ribbon.openMonthlyListPlanner"),
 			() => {
 				void this.activateMonthlyListPlanner();
@@ -178,6 +178,25 @@ export default class DiaryObsidian extends Plugin {
 			state: { year },
 		});
 		await this.app.workspace.revealLeaf(leaf);
+	}
+
+	/**
+	 * Single control: yearly → monthly grid → monthly list → yearly.
+	 * Preserves year/month between the two monthly modes.
+	 */
+	async cyclePlannerView(leaf: WorkspaceLeaf): Promise<void> {
+		const { view } = leaf;
+		if (view instanceof YearlyPlannerView) {
+			const y = view.year;
+			const now = new Date();
+			const m =
+				now.getFullYear() === y ? now.getMonth() + 1 : 1;
+			await this.switchToMonthly(leaf, y, m);
+		} else if (view instanceof MonthlyPlannerView) {
+			await this.switchToMonthlyList(leaf, view.year, view.month);
+		} else if (view instanceof MonthlyListPlannerView) {
+			await this.switchToYearly(leaf, view.year);
+		}
 	}
 
 	async loadSettings() {

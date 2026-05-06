@@ -21,6 +21,10 @@ import {
 	isTodoFile,
 } from "../yearly-planner/file-utils";
 import { isDateInSelection } from "../yearly-planner/selection";
+import {
+	makeDateSelectionKey,
+	makeFileSelectionKey,
+} from "../planner-clipboard";
 import type { CalendarCell } from "../../utils/date";
 import { MonthYearInputModal } from "./modals";
 
@@ -31,11 +35,8 @@ export interface MonthlyHeaderCallbacks {
 	onMonthYearClick: (year: number, month: number) => void;
 	onAddFile?: () => void;
 	onResetZoom?: () => void;
-	onSwitchToYearly?: () => void;
-	/** Monthly grid → list layout */
-	onSwitchToListView?: () => void;
-	/** Monthly list → grid layout */
-	onSwitchToGridView?: () => void;
+	/** Yearly → monthly grid → list → yearly */
+	onCyclePlannerView?: () => void;
 }
 
 export function renderMonthlyPlannerHeader(
@@ -95,31 +96,14 @@ export function renderMonthlyPlannerHeader(
 	todayBtn.ariaLabel = t("header.goToCurrentMonth");
 	todayBtn.onclick = callbacks.onToday;
 
-	if (callbacks.onSwitchToYearly) {
-		const yearBtn = navWrapper.createEl("button", {
-			cls: "monthly-planner-nav-btn",
+	if (callbacks.onCyclePlannerView) {
+		const cycleBtn = navWrapper.createEl("button", {
+			cls: "monthly-planner-nav-btn monthly-planner-nav-btn--cycle-view",
 		});
-		setIcon(yearBtn, "calendar-range");
-		yearBtn.ariaLabel = t("header.switchToYearly");
-		yearBtn.onclick = callbacks.onSwitchToYearly;
-	}
-
-	if (callbacks.onSwitchToListView) {
-		const listBtn = navWrapper.createEl("button", {
-			cls: "monthly-planner-nav-btn",
-		});
-		setIcon(listBtn, "list");
-		listBtn.ariaLabel = t("header.switchToListView");
-		listBtn.onclick = callbacks.onSwitchToListView;
-	}
-
-	if (callbacks.onSwitchToGridView) {
-		const gridBtn = navWrapper.createEl("button", {
-			cls: "monthly-planner-nav-btn",
-		});
-		setIcon(gridBtn, "calendar");
-		gridBtn.ariaLabel = t("header.switchToGridView");
-		gridBtn.onclick = callbacks.onSwitchToGridView;
+		setIcon(cycleBtn, "repeat");
+		cycleBtn.ariaLabel = t("header.cyclePlannerView");
+		cycleBtn.title = t("header.cyclePlannerViewHint");
+		cycleBtn.onclick = callbacks.onCyclePlannerView;
 	}
 
 	if (callbacks.onAddFile) {
@@ -146,9 +130,10 @@ export interface CreateMonthlyCellContext {
 	folder: string;
 	dragState: DragState | null;
 	chipDragState: ChipDragState | null;
+	clipboardSelection: Set<string>;
 	holidaysData: HolidayData | null;
 	locale: string;
-	rangeStackMap: Map<string, number>;
+	rangeLaneMap: Map<string, number>;
 }
 
 export function createMonthlyCell(
@@ -171,6 +156,9 @@ export function createMonthlyCell(
 		ctx.chipDragState.currentMonth === month &&
 		ctx.chipDragState.currentDay === day;
 	const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+	const isClipboardDate = ctx.clipboardSelection.has(
+		makeDateSelectionKey(dateKey),
+	);
 	const isHoliday = ctx.holidaysData?.dates.has(dateKey) ?? false;
 	const dayOfWeek = getDayOfWeek(year, month, day);
 	const isSaturday = dayOfWeek === 6;
@@ -184,6 +172,7 @@ export function createMonthlyCell(
 	cell.className = [
 		"monthly-planner-cell",
 		isSelected && "monthly-planner-cell-selected",
+		isClipboardDate && "monthly-planner-cell-clipboard-selected",
 		isDropTarget && "monthly-planner-cell-drop-target",
 		isHoliday && "monthly-planner-cell-holiday",
 		isSaturday && "monthly-planner-cell-saturday",
@@ -215,16 +204,16 @@ export function createMonthlyCell(
 		cell.dataset.hasHoliday = "true";
 	}
 
-	/* Range bars: rendered inside inner, at top (after day number), chip height, stacked vertically when overlapping */
+	/* Range bars: lane index from getRangeLaneMap (overlap-based, same as yearly); data-range-stack holds lane 0–9 */
 	if (rangeFiles.length > 0) {
 		const rangeContainer = inner.createDiv({
 			cls: "monthly-planner-range-bars",
 		});
-		const globalIndices = rangeFiles.map(
-			({ file }) => ctx.rangeStackMap.get(file.basename) ?? 0,
+		const laneIndices = rangeFiles.map(
+			({ file }) => ctx.rangeLaneMap.get(file.basename) ?? 0,
 		);
-		const maxStack = Math.max(0, ...globalIndices);
-		const requiredSlots = maxStack + 1;
+		const maxLane = Math.max(0, ...laneIndices);
+		const requiredSlots = maxLane + 1;
 		rangeContainer.dataset.rangeCount = String(
 			Math.min(Math.max(requiredSlots, rangeFiles.length), 10),
 		);
@@ -240,12 +229,15 @@ export function createMonthlyCell(
 				.filter(Boolean)
 				.join(" ");
 			const barEl = rangeContainer.createDiv({ cls: barClasses });
-			const stackIdx = ctx.rangeStackMap.get(file.basename) ?? 0;
-			barEl.dataset.rangeStack = String(Math.min(stackIdx, 9));
+			const laneIdx = ctx.rangeLaneMap.get(file.basename) ?? 0;
+			barEl.dataset.rangeStack = String(Math.min(laneIdx, 9));
 			barEl.dataset.path = file.path;
 			const chipColor = getChipColor(ctx.app, file);
 			if (chipColor) {
 				barEl.style.setProperty("--range-color", chipColor);
+			}
+			if (ctx.clipboardSelection.has(makeFileSelectionKey(file.path))) {
+				barEl.addClass("monthly-planner-cell-clipboard-selected");
 			}
 			if (isFirst) {
 				const title = getFileTitle(ctx.app, file);
@@ -285,6 +277,9 @@ export function createMonthlyCell(
 			const chipColor = getChipColor(ctx.app, file);
 			if (chipColor) {
 				linkEl.style.borderLeftColor = chipColor;
+			}
+			if (ctx.clipboardSelection.has(makeFileSelectionKey(file.path))) {
+				linkEl.addClass("monthly-planner-cell-clipboard-selected");
 			}
 		}
 	}

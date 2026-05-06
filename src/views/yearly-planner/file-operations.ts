@@ -344,3 +344,77 @@ export async function updateFileNotifyMinutes(
 		},
 	);
 }
+
+function sanitizePlannerBasenameSuffix(raw: string): string {
+	return raw
+		.replace(/[\\/:*?"<>|#\n\r\t]/g, "")
+		.trim()
+		.replace(/\s+/g, "-");
+}
+
+/**
+ * Update display title. Planner date or range file names: renames the file so the
+ * suffix (after the date) matches; other files: set or clear frontmatter `title`.
+ * @returns The file to use going forward (renamed TFile or the same file).
+ */
+export async function updateFileTitle(
+	app: App,
+	file: TFile,
+	newTitleRaw: string,
+): Promise<TFile> {
+	const newTitle = newTitleRaw.trim();
+	const cleanBase = file.basename.replace(/\.md$/i, "");
+	const rangeParsed = parseRangeBasename(cleanBase);
+	const singleParsed = !rangeParsed
+		? parseSingleDateBasename(cleanBase)
+		: null;
+
+	if (rangeParsed) {
+		const suffix = newTitle ? sanitizePlannerBasenameSuffix(newTitle) : "";
+		const newBasename = `${rangeParsed.start}--${rangeParsed.end}${
+			suffix ? `-${suffix}` : ""
+		}.md`;
+		return await renamePlannerFileIfNeeded(app, file, newBasename);
+	}
+
+	if (singleParsed) {
+		const suffix = newTitle ? sanitizePlannerBasenameSuffix(newTitle) : "";
+		const newBasename = `${singleParsed.date}${
+			suffix ? `-${suffix}` : ""
+		}.md`;
+		return await renamePlannerFileIfNeeded(app, file, newBasename);
+	}
+
+	await app.fileManager.processFrontMatter(
+		file,
+		(frontmatter: Record<string, unknown>) => {
+			if (newTitle) {
+				frontmatter.title = newTitle;
+			} else {
+				delete frontmatter.title;
+			}
+		},
+	);
+	return file;
+}
+
+async function renamePlannerFileIfNeeded(
+	app: App,
+	file: TFile,
+	newBasename: string,
+): Promise<TFile> {
+	if (file.basename === newBasename) return file;
+	const folder = file.parent?.path ?? "";
+	const newPath = folder ? `${folder}/${newBasename}` : newBasename;
+	if (app.vault.getAbstractFileByPath(newPath) && newPath !== file.path) {
+		const err = new Error("PLANNER_RENAME_CONFLICT");
+		(err as Error & { code?: string }).code = "PLANNER_RENAME_CONFLICT";
+		throw err;
+	}
+	await app.vault.rename(file, newPath);
+	const next = app.vault.getAbstractFileByPath(newPath);
+	if (!(next instanceof TFile)) {
+		throw new Error("PLANNER_RENAME_FAILED");
+	}
+	return next;
+}

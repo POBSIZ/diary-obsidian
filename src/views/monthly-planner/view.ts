@@ -1,11 +1,12 @@
-import { ItemView, Platform, TFile, WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, Platform, TFile, WorkspaceLeaf } from "obsidian";
 import { t } from "../../i18n";
 import DiaryObsidian from "../../main";
 import { VIEW_TYPE_MONTHLY_PLANNER } from "../../constants";
 import type { ChipDragState } from "../yearly-planner/types";
 import type { MonthlyPlannerState } from "./types";
 import {
-	getRangeStackIndexMap,
+	getRangeLaneMap,
+	getRangesForYear,
 	getMonthNoteFilePath,
 } from "../yearly-planner/file-utils";
 import {
@@ -32,6 +33,18 @@ import { getSelectionBounds } from "../yearly-planner/selection";
 import { getHolidaysForYear } from "../../utils/holidays";
 import { getMonthCalendarCells } from "../../utils/date";
 import { PinchZoomController } from "./pinch-zoom";
+import {
+	copyPlannerSelectionToClipboard,
+	isPrimaryMod,
+	openPlannerClipboardSelectionTrashModal,
+	PLANNER_CLIPBOARD_BUSY_CLASS,
+	PLANNER_CLIPBOARD_ERROR_NOTICE_MS,
+	PLANNER_CLIPBOARD_SUCCESS_NOTICE_MS,
+	pastePlannerClipboard,
+	resolveClipboardSelectionToFiles,
+	shouldDeferPlannerClipboardToNative,
+	undoPlannerPasteBatch,
+} from "../planner-clipboard";
 
 export type { MonthlyPlannerState } from "./types";
 
@@ -43,9 +56,15 @@ export class MonthlyPlannerView
 	month: number;
 	dragState: import("../yearly-planner/types").DragState | null = null;
 	chipDragState: ChipDragState | null = null;
+	clipboardSelection = new Set<string>();
 	private interactionHandler: MonthlyInteractionHandler;
 	private pinchZoom: PinchZoomController | null = null;
 	private pinchZoomScale = 1;
+	private clipboardKeydownRegistered = false;
+	private pasteUndoBatches: string[][] = [];
+	private boundClipboardKeydown = (e: KeyboardEvent) => {
+		this.handleClipboardKeydown(e);
+	};
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -89,6 +108,12 @@ export class MonthlyPlannerView
 	}
 
 	onOpen(): Promise<void> {
+		if (!this.clipboardKeydownRegistered) {
+			this.registerDomEvent(window, "keydown", this.boundClipboardKeydown, {
+				capture: true,
+			});
+			this.clipboardKeydownRegistered = true;
+		}
 		this.render();
 		return Promise.resolve();
 	}
@@ -97,6 +122,8 @@ export class MonthlyPlannerView
 		this.interactionHandler.clearDragListeners();
 		this.pinchZoom?.detach();
 		this.pinchZoom = null;
+		this.clipboardSelection.clear();
+		this.pasteUndoBatches.length = 0;
 		return Promise.resolve();
 	}
 
@@ -301,15 +328,8 @@ export class MonthlyPlannerView
 								this.pinchZoom?.resetScale();
 							}
 						: undefined,
-				onSwitchToYearly: () => {
-					void this.plugin.switchToYearly(this.leaf, this.year);
-				},
-				onSwitchToListView: () => {
-					void this.plugin.switchToMonthlyList(
-						this.leaf,
-						this.year,
-						this.month,
-					);
+				onCyclePlannerView: () => {
+					void this.plugin.cyclePlannerView(this.leaf);
 				},
 			},
 		);
@@ -384,15 +404,18 @@ export class MonthlyPlannerView
 			showHolidays && holidayCountry
 				? getHolidaysForYear(holidayCountry, this.year)
 				: null;
-		const rangeStackMap = getRangeStackIndexMap(this.app, this.year);
+		const rangeLaneMap = getRangeLaneMap(
+			getRangesForYear(this.app, this.year),
+		);
 		const cellCtx = {
 			app: this.app,
 			folder,
 			dragState: this.dragState,
 			chipDragState: this.chipDragState,
+			clipboardSelection: this.clipboardSelection,
 			holidaysData,
 			locale,
-			rangeStackMap,
+			rangeLaneMap,
 		};
 
 		const cells = getMonthCalendarCells(this.year, this.month);
@@ -464,5 +487,139 @@ export class MonthlyPlannerView
 		new FileOptionsModal(this.app, file, this.leaf, () =>
 			this.render(),
 		).open();
+	}
+
+	private handleClipboardKeydown(e: KeyboardEvent): void {
+		if (!isPrimaryMod(e) || e.shiftKey) return;
+		if (shouldDeferPlannerClipboardToNative(e)) return;
+		if (this.app.workspace.getActiveViewOfType(MonthlyPlannerView) !== this)
+			return;
+
+		const k = e.key.toLowerCase();
+
+		if (k === "backspace" || k === "delete") {
+			if (this.clipboardSelection.size === 0) return;
+			e.preventDefault();
+			openPlannerClipboardSelectionTrashModal(
+				this.app,
+				resolveClipboardSelectionToFiles(this.app, this.clipboardSelection),
+				this.clipboardSelection,
+				() => this.render(),
+			);
+			return;
+		}
+
+		if (k === "z") {
+			if (this.pasteUndoBatches.length === 0) {
+				new Notice(t("plannerClipboard.undoNothing"));
+				e.preventDefault();
+				return;
+			}
+			e.preventDefault();
+			const batch = this.pasteUndoBatches.pop()!;
+			this.contentEl.addClass(PLANNER_CLIPBOARD_BUSY_CLASS);
+			void (async () => {
+				try {
+					const u = await undoPlannerPasteBatch(this.app, batch);
+					this.render();
+					if (!u.ok) {
+						this.pasteUndoBatches.push(batch);
+						new Notice(
+							t(u.errorKey, { path: u.path }),
+							PLANNER_CLIPBOARD_ERROR_NOTICE_MS,
+						);
+					} else if (u.trashedCount === 0) {
+						new Notice(
+							t("plannerClipboard.undoMissingFiles"),
+							PLANNER_CLIPBOARD_ERROR_NOTICE_MS,
+						);
+					} else {
+						new Notice(
+							t("plannerClipboard.undoSuccess", {
+								count: u.trashedCount,
+							}),
+							PLANNER_CLIPBOARD_SUCCESS_NOTICE_MS,
+						);
+					}
+				} finally {
+					this.contentEl.removeClass(PLANNER_CLIPBOARD_BUSY_CLASS);
+				}
+			})();
+			return;
+		}
+
+		if (k !== "c" && k !== "v") return;
+
+		if (k === "c") {
+			const files = resolveClipboardSelectionToFiles(
+				this.app,
+				this.clipboardSelection,
+			);
+			if (files.length === 0) {
+				new Notice(t("plannerClipboard.emptyCopy"));
+				e.preventDefault();
+				return;
+			}
+			e.preventDefault();
+			this.contentEl.addClass(PLANNER_CLIPBOARD_BUSY_CLASS);
+			void (async () => {
+				try {
+					const r = await copyPlannerSelectionToClipboard(
+						this.app,
+						files,
+					);
+					if (!r.ok) {
+						new Notice(
+							t(r.errorKey),
+							PLANNER_CLIPBOARD_ERROR_NOTICE_MS,
+						);
+					} else {
+						new Notice(
+							t("plannerClipboard.copySuccess", {
+								count: r.noteCount,
+							}),
+							PLANNER_CLIPBOARD_SUCCESS_NOTICE_MS,
+						);
+					}
+				} finally {
+					this.contentEl.removeClass(PLANNER_CLIPBOARD_BUSY_CLASS);
+				}
+			})();
+			return;
+		}
+
+		if (this.clipboardSelection.size === 0) return;
+		e.preventDefault();
+		this.contentEl.addClass(PLANNER_CLIPBOARD_BUSY_CLASS);
+		void (async () => {
+			try {
+				const text = await navigator.clipboard.readText();
+				const r = await pastePlannerClipboard(
+					this.app,
+					this.plugin.settings.plannerFolder || "Planner",
+					text,
+					this.clipboardSelection,
+				);
+				if (r.ok) {
+					this.pasteUndoBatches.push(r.createdPaths);
+					this.render();
+					new Notice(
+						t("plannerClipboard.pasteSuccess", {
+							count: r.fileCount,
+						}),
+						PLANNER_CLIPBOARD_SUCCESS_NOTICE_MS,
+					);
+				} else {
+					new Notice(t(r.errorKey), PLANNER_CLIPBOARD_ERROR_NOTICE_MS);
+				}
+			} catch {
+				new Notice(
+					t("plannerClipboard.pasteReadFailed"),
+					PLANNER_CLIPBOARD_ERROR_NOTICE_MS,
+				);
+			} finally {
+				this.contentEl.removeClass(PLANNER_CLIPBOARD_BUSY_CLASS);
+			}
+		})();
 	}
 }

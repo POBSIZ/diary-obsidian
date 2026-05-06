@@ -372,15 +372,8 @@ export class MonthlyListPlannerView extends ItemView {
 				onAddFile: () => {
 					this.openCreateFileModal(null);
 				},
-				onSwitchToYearly: () => {
-					void this.plugin.switchToYearly(this.leaf, this.year);
-				},
-				onSwitchToGridView: () => {
-					void this.plugin.switchToMonthly(
-						this.leaf,
-						this.year,
-						this.month,
-					);
+				onCyclePlannerView: () => {
+					void this.plugin.cyclePlannerView(this.leaf);
 				},
 			},
 		);

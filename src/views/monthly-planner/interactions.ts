@@ -4,6 +4,7 @@ import {
 	getMonthlyCellAtClientPos,
 	getChipOrBarAt,
 } from "./dom";
+import { applyClipboardModifierClick, isPrimaryMod } from "../planner-clipboard";
 import {
 	getSelectionBounds,
 	countSelectionCells,
@@ -26,6 +27,7 @@ export interface MonthlyPlannerViewDelegate {
 	readonly leaf: WorkspaceLeaf;
 	dragState: DragState | null;
 	chipDragState: ChipDragState | null;
+	clipboardSelection: Set<string>;
 	render(): void;
 	updateChipDragDropTarget(): void;
 	openCreateFileModal(bounds: SelectionBounds | null): void;
@@ -77,6 +79,24 @@ export class MonthlyInteractionHandler {
 			this.chipDragJustEnded = false;
 			e.preventDefault();
 			e.stopPropagation();
+			return;
+		}
+		if (
+			applyClipboardModifierClick({
+				contentEl: this.view.contentEl,
+				clientX,
+				clientY,
+				e,
+				topmostAt: (cx, cy) =>
+					getTopmostMonthlyElementAt(this.view.contentEl, cx, cy),
+				chipBarSelector:
+					".monthly-planner-cell-file[data-path], .monthly-planner-range-bar[data-path]",
+				cellSelector:
+					"td[data-year][data-month][data-day]:not(.monthly-planner-cell-invalid)",
+				selection: this.view.clipboardSelection,
+				rerender: () => this.view.render(),
+			})
+		) {
 			return;
 		}
 		const el = getTopmostMonthlyElementAt(
@@ -221,6 +241,7 @@ export class MonthlyInteractionHandler {
 	}
 
 	maybeStartDrag(clientX: number, clientY: number, e: MouseEvent): void {
+		if (isPrimaryMod(e)) return;
 		const el = getTopmostMonthlyElementAt(
 			this.view.contentEl,
 			clientX,

@@ -232,7 +232,7 @@ function uniqueVaultPath(app: App, path: string): string {
 }
 
 export type PastePlannerResult =
-	| { ok: true; fileCount: number }
+	| { ok: true; fileCount: number; createdPaths: string[] }
 	| { ok: false; errorKey: string };
 
 export async function pastePlannerClipboard(
@@ -255,31 +255,64 @@ export async function pastePlannerClipboard(
 	if (items.length === 1) {
 		const srcPath = items[0]!.path;
 		const content = items[0]!.content;
-		let created = 0;
+		const createdPaths: string[] = [];
 		for (const dateStr of targetDates) {
 			const newBasename = rebasePlannerFileBasename(srcPath, dateStr);
 			let path = trimmed ? `${trimmed}/${newBasename}` : newBasename;
 			path = uniqueVaultPath(app, path);
 			await app.vault.create(path, content);
-			created++;
+			createdPaths.push(path);
 		}
-		return { ok: true, fileCount: created };
+		return {
+			ok: true,
+			fileCount: createdPaths.length,
+			createdPaths,
+		};
 	}
 
 	if (items.length > 1 && targetDates.length === 1) {
 		const dateStr = targetDates[0]!;
-		let created = 0;
+		const createdPaths: string[] = [];
 		for (const it of items) {
 			const newBasename = rebasePlannerFileBasename(it.path, dateStr);
 			let path = trimmed ? `${trimmed}/${newBasename}` : newBasename;
 			path = uniqueVaultPath(app, path);
 			await app.vault.create(path, it.content);
-			created++;
+			createdPaths.push(path);
 		}
-		return { ok: true, fileCount: created };
+		return {
+			ok: true,
+			fileCount: createdPaths.length,
+			createdPaths,
+		};
 	}
 
 	return { ok: false, errorKey: "plannerClipboard.pasteMultiConflict" };
+}
+
+/**
+ * Move files from a single paste operation to trash (for Cmd/Ctrl+Z undo).
+ * Skips paths that no longer exist.
+ */
+export async function undoPlannerPasteBatch(
+	app: App,
+	paths: string[],
+): Promise<
+	| { ok: true; trashedCount: number }
+	| { ok: false; errorKey: string; path: string }
+> {
+	let trashedCount = 0;
+	for (const p of paths) {
+		const f = app.vault.getAbstractFileByPath(p);
+		if (!(f instanceof TFile)) continue;
+		try {
+			await app.fileManager.trashFile(f);
+			trashedCount++;
+		} catch {
+			return { ok: false, errorKey: "plannerClipboard.undoFailed", path: p };
+		}
+	}
+	return { ok: true, trashedCount };
 }
 
 export interface ClipboardModifierClickContext {

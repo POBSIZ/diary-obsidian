@@ -21,6 +21,10 @@ import {
 } from "./file-utils";
 import { parseRangeBasename } from "../../utils/range";
 import { isDateInSelection } from "./selection";
+import {
+	makeDateSelectionKey,
+	makeFileSelectionKey,
+} from "../planner-clipboard";
 
 export interface HeaderCallbacks {
 	onPrev: () => void;
@@ -28,7 +32,8 @@ export interface HeaderCallbacks {
 	onToday: () => void;
 	onYearClick: (year: number) => void;
 	onAddFile?: () => void;
-	onSwitchToMonthly?: () => void;
+	/** Yearly → monthly grid → list → yearly */
+	onCyclePlannerView?: () => void;
 }
 
 export function renderYearlyPlannerHeader(
@@ -80,13 +85,14 @@ export function renderYearlyPlannerHeader(
 	todayBtn.ariaLabel = t("header.goToCurrentYear");
 	todayBtn.onclick = callbacks.onToday;
 
-	if (callbacks.onSwitchToMonthly) {
-		const monthBtn = yearWrapper.createEl("button", {
-			cls: "yearly-planner-year-btn",
+	if (callbacks.onCyclePlannerView) {
+		const cycleBtn = yearWrapper.createEl("button", {
+			cls: "yearly-planner-year-btn yearly-planner-year-btn--cycle-view",
 		});
-		setIcon(monthBtn, "calendar-days");
-		monthBtn.ariaLabel = t("header.switchToMonthly");
-		monthBtn.onclick = callbacks.onSwitchToMonthly;
+		setIcon(cycleBtn, "repeat");
+		cycleBtn.ariaLabel = t("header.cyclePlannerView");
+		cycleBtn.title = t("header.cyclePlannerViewHint");
+		cycleBtn.onclick = callbacks.onCyclePlannerView;
 	}
 
 	if (callbacks.onAddFile) {
@@ -105,6 +111,7 @@ export interface CreateCellContext {
 	folder: string;
 	dragState: DragState | null;
 	chipDragState: ChipDragState | null;
+	clipboardSelection: Set<string>;
 	holidaysData: HolidayData | null;
 	locale: string;
 	rangeLaneMap: Map<string, number>;
@@ -125,6 +132,9 @@ export function createPlannerCell(
 		ctx.chipDragState.currentMonth === month &&
 		ctx.chipDragState.currentDay === day;
 	const dateKey = `${ctx.year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+	const isClipboardDate = ctx.clipboardSelection.has(
+		makeDateSelectionKey(dateKey),
+	);
 	const isHoliday = ctx.holidaysData?.dates.has(dateKey) ?? false;
 	const dayOfWeek = getDayOfWeek(ctx.year, month, day);
 	const isSaturday = dayOfWeek === 6;
@@ -140,6 +150,7 @@ export function createPlannerCell(
 		cls: [
 			isValid ? "" : "yearly-planner-cell-invalid",
 			isSelected && "yearly-planner-cell-selected",
+			isClipboardDate && "yearly-planner-cell-clipboard-selected",
 			isDropTarget && "yearly-planner-cell-drop-target",
 			isHoliday && "yearly-planner-cell-holiday",
 			isSaturday && "yearly-planner-cell-saturday",
@@ -186,6 +197,9 @@ export function createPlannerCell(
 			if (chipColor) {
 				bar.style.borderRightColor = chipColor;
 			}
+			if (ctx.clipboardSelection.has(makeFileSelectionKey(file.path))) {
+				bar.addClass("yearly-planner-cell-clipboard-selected");
+			}
 		}
 	}
 
@@ -222,6 +236,9 @@ export function createPlannerCell(
 				if (chipColor) {
 					linkEl.dataset.rangeColor = chipColor;
 				}
+			}
+			if (ctx.clipboardSelection.has(makeFileSelectionKey(file.path))) {
+				linkEl.addClass("yearly-planner-cell-clipboard-selected");
 			}
 		}
 	}

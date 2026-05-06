@@ -4,6 +4,7 @@ import {
 	getCellAtClientPos,
 	getChipOrBarAt,
 } from "./dom";
+import { applyClipboardModifierClick, isPrimaryMod } from "../planner-clipboard";
 import {
 	getSelectionBounds,
 	countSelectionCells,
@@ -22,6 +23,7 @@ export interface YearlyPlannerViewDelegate {
 	readonly leaf: WorkspaceLeaf;
 	dragState: DragState | null;
 	chipDragState: ChipDragState | null;
+	clipboardSelection: Set<string>;
 	render(): void;
 	updateChipDragDropTarget(): void;
 	openCreateFileModal(bounds: SelectionBounds | null): void;
@@ -228,6 +230,24 @@ export class PlannerInteractionHandler {
 			e.stopPropagation();
 			return;
 		}
+		if (
+			applyClipboardModifierClick({
+				contentEl: this.view.contentEl,
+				clientX,
+				clientY,
+				e,
+				topmostAt: (cx, cy) =>
+					getTopmostPlannerElementAt(this.view.contentEl, cx, cy),
+				chipBarSelector:
+					".yearly-planner-cell-file[data-path], .yearly-planner-cell-range-bar[data-path]",
+				cellSelector:
+					"td[data-year][data-month][data-day]:not(.yearly-planner-cell-invalid)",
+				selection: this.view.clipboardSelection,
+				rerender: () => this.view.render(),
+			})
+		) {
+			return;
+		}
 		const el = getTopmostPlannerElementAt(
 			this.view.contentEl,
 			clientX,
@@ -357,6 +377,7 @@ export class PlannerInteractionHandler {
 	}
 
 	maybeStartDrag(clientX: number, clientY: number, e: MouseEvent): void {
+		if (isPrimaryMod(e)) return;
 		const el = getTopmostPlannerElementAt(
 			this.view.contentEl,
 			clientX,

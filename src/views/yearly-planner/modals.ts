@@ -11,6 +11,7 @@ import { getLocale, t } from "../../i18n";
 import {
 	getAllFolderPaths,
 	getChipColor,
+	getFileTitle,
 	getNotifyMinutes,
 	isTodoCompleted,
 	isTodoFile,
@@ -21,6 +22,7 @@ import {
 	parseSingleDateBasename,
 	updateFileColor,
 	updateFileNotifyMinutes,
+	updateFileTitle,
 	updateFileTodoStatus,
 } from "./file-operations";
 import { parseRangeBasename } from "../../utils/range";
@@ -730,6 +732,7 @@ export class DeleteConfirmModal extends Modal {
 }
 
 export class FileOptionsModal extends Modal {
+	private titleInput!: HTMLInputElement;
 	private colorInput!: HTMLInputElement;
 	private colorPickerInput!: HTMLInputElement;
 	private colorPresetBtns: HTMLButtonElement[] = [];
@@ -756,113 +759,75 @@ export class FileOptionsModal extends Modal {
 		this.contentEl.addClass("yearly-planner-modal-content");
 		this.contentEl.createEl("h2", { text: t("modal.fileOptions") });
 
-		const titleEl = this.contentEl.createEl("p", {
-			cls: "yearly-planner-file-options-title",
+		const form = this.contentEl.createDiv({
+			cls: "yearly-planner-create-file-modal yearly-planner-file-options-form",
 		});
-		titleEl.createEl("strong", { text: this.file.basename });
-		titleEl.appendText(` (${this.file.path})`);
 
-		const previewWrap = this.contentEl.createDiv({
-			cls: "yearly-planner-file-preview-wrap",
-		});
-		previewWrap.createEl("label", { text: t("modal.preview") });
-		const previewEl = previewWrap.createDiv({
-			cls: "yearly-planner-file-preview",
-		});
-		previewEl.createSpan({
-			text: t("modal.previewLoading"),
-			cls: "yearly-planner-file-preview-loading",
-		});
-		void this.loadPreview(previewEl);
-
-		const todoSection = this.contentEl.createDiv({
-			cls: "yearly-planner-create-file-modal",
-		});
-		const todoRow = todoSection.createDiv({
+		const pathRow = form.createDiv({
 			cls: "yearly-planner-create-file-row",
 		});
-		this.todoCheckbox = todoRow.createEl("input", {
-			type: "checkbox",
-			cls: "yearly-planner-todo-checkbox",
+		pathRow.createEl("label", { text: t("modal.filePath") });
+		const pathInput = pathRow.createEl("input", {
+			type: "text",
+			cls: "yearly-planner-filename-input yearly-planner-file-options-path",
 		});
-		this.todoCheckbox.checked = isTodoFile(this.app, this.file);
-		const todoLabel = todoRow.createEl("label");
-		todoLabel.appendChild(this.todoCheckbox);
-		todoLabel.appendText(` ${t("modal.todoFile")}`);
-		this.todoCheckbox.onchange = () => this.updateCompletedRowVisibility();
+		pathInput.readOnly = true;
+		pathInput.value = this.file.path;
+		pathInput.title = this.file.path;
 
-		this.completedRow = todoSection.createDiv({
-			cls: "yearly-planner-create-file-row yearly-planner-completed-row",
-		});
-		this.completedCheckbox = this.completedRow.createEl("input", {
-			type: "checkbox",
-			cls: "yearly-planner-completed-checkbox",
-		});
-		this.completedCheckbox.checked = isTodoCompleted(this.app, this.file);
-		const completedLabel = this.completedRow.createEl("label");
-		completedLabel.appendChild(this.completedCheckbox);
-		completedLabel.appendText(` ${t("modal.completed")}`);
-		this.updateCompletedRowVisibility();
-
-		const notifyRow = todoSection.createDiv({
+		const titleRow = form.createDiv({
 			cls: "yearly-planner-create-file-row",
 		});
-		notifyRow.createEl("label", { text: t("modal.notifyTime") });
-		this.notifyTimeInput = notifyRow.createEl("input", {
-			type: "time",
-			cls: "yearly-planner-date-input",
+		titleRow.createEl("label", { text: t("modal.displayTitle") });
+		this.titleInput = titleRow.createEl("input", {
+			type: "text",
+			cls: "yearly-planner-filename-input",
 		});
-		this.notifyTimeInput.title = t("modal.notifyTimeDesc");
-		const existingNotify = getNotifyMinutes(this.app, this.file);
-		this.notifyTimeInput.value = notifyMinutesToTimeValue(existingNotify);
-		notifyRow.createDiv({
+		this.titleInput.value = getFileTitle(this.app, this.file);
+		this.titleInput.placeholder = t("modal.displayTitle");
+		titleRow.createDiv({
 			cls: "yearly-planner-create-file-hint",
-			text: t("modal.notifyTimeDesc"),
+			text: t("modal.displayTitleHint"),
 		});
 
 		const rangeParsed = parseRangeBasename(this.file.basename);
 		const singleParsed =
 			!rangeParsed &&
 			parseSingleDateBasename(this.file.basename.replace(/\.md$/i, ""));
-		if (rangeParsed || singleParsed) {
-			const dateSection = this.contentEl.createDiv({
-				cls: "yearly-planner-create-file-modal",
+		if (rangeParsed) {
+			const startRow = form.createDiv({
+				cls: "yearly-planner-create-file-row",
 			});
-			if (rangeParsed) {
-				const startRow = dateSection.createDiv({
-					cls: "yearly-planner-create-file-row",
-				});
-				startRow.createEl("label", { text: t("modal.startDate") });
-				this.startDateInput = startRow.createEl("input", {
-					type: "date",
-					cls: "yearly-planner-date-input",
-				});
-				this.startDateInput.value = rangeParsed.start;
-				const endRow = dateSection.createDiv({
-					cls: "yearly-planner-create-file-row",
-				});
-				endRow.createEl("label", { text: t("modal.endDate") });
-				this.endDateInput = endRow.createEl("input", {
-					type: "date",
-					cls: "yearly-planner-date-input",
-				});
-				this.endDateInput.value = rangeParsed.end;
-			} else if (singleParsed) {
-				const dateRow = dateSection.createDiv({
-					cls: "yearly-planner-create-file-row",
-				});
-				dateRow.createEl("label", { text: t("modal.changeDate") });
-				this.singleDateInput = dateRow.createEl("input", {
-					type: "date",
-					cls: "yearly-planner-date-input",
-				});
-				this.singleDateInput.value = singleParsed.date;
-			}
+			startRow.createEl("label", { text: t("modal.startDate") });
+			this.startDateInput = startRow.createEl("input", {
+				type: "date",
+				cls: "yearly-planner-date-input",
+			});
+			this.startDateInput.value = rangeParsed.start;
+			const endRow = form.createDiv({
+				cls: "yearly-planner-create-file-row",
+			});
+			endRow.createEl("label", { text: t("modal.endDate") });
+			this.endDateInput = endRow.createEl("input", {
+				type: "date",
+				cls: "yearly-planner-date-input",
+			});
+			this.endDateInput.value = rangeParsed.end;
+		} else if (singleParsed) {
+			const dateRow = form.createDiv({
+				cls: "yearly-planner-create-file-row",
+			});
+			dateRow.createEl("label", { text: t("modal.changeDate") });
+			this.singleDateInput = dateRow.createEl("input", {
+				type: "date",
+				cls: "yearly-planner-date-input",
+			});
+			this.singleDateInput.value = singleParsed.date;
 		}
 
 		this.colorPresets = getChipColorPresets();
 		const defaultColor = this.colorPresets[0]!.hex;
-		const colorRow = this.contentEl.createDiv({
+		const colorRow = form.createDiv({
 			cls: "yearly-planner-create-file-row",
 		});
 		colorRow.createEl("label", { text: t("modal.color") });
@@ -904,6 +869,61 @@ export class FileOptionsModal extends Modal {
 		this.colorInput.title = t("modal.chipColorTitle");
 		this.colorInput.oninput = () => this.syncColorFromText();
 		this.updateColorPresetActive();
+
+		const todoRow = form.createDiv({
+			cls: "yearly-planner-create-file-row",
+		});
+		this.todoCheckbox = todoRow.createEl("input", {
+			type: "checkbox",
+			cls: "yearly-planner-todo-checkbox",
+		});
+		this.todoCheckbox.checked = isTodoFile(this.app, this.file);
+		const todoLabel = todoRow.createEl("label");
+		todoLabel.appendChild(this.todoCheckbox);
+		todoLabel.appendText(` ${t("modal.todoFile")}`);
+		this.todoCheckbox.onchange = () => this.updateCompletedRowVisibility();
+
+		this.completedRow = form.createDiv({
+			cls: "yearly-planner-create-file-row yearly-planner-completed-row",
+		});
+		this.completedCheckbox = this.completedRow.createEl("input", {
+			type: "checkbox",
+			cls: "yearly-planner-completed-checkbox",
+		});
+		this.completedCheckbox.checked = isTodoCompleted(this.app, this.file);
+		const completedLabel = this.completedRow.createEl("label");
+		completedLabel.appendChild(this.completedCheckbox);
+		completedLabel.appendText(` ${t("modal.completed")}`);
+		this.updateCompletedRowVisibility();
+
+		const notifyRow = form.createDiv({
+			cls: "yearly-planner-create-file-row",
+		});
+		notifyRow.createEl("label", { text: t("modal.notifyTime") });
+		this.notifyTimeInput = notifyRow.createEl("input", {
+			type: "time",
+			cls: "yearly-planner-date-input",
+		});
+		this.notifyTimeInput.title = t("modal.notifyTimeDesc");
+		const existingNotify = getNotifyMinutes(this.app, this.file);
+		this.notifyTimeInput.value = notifyMinutesToTimeValue(existingNotify);
+		notifyRow.createDiv({
+			cls: "yearly-planner-create-file-hint",
+			text: t("modal.notifyTimeDesc"),
+		});
+
+		const previewWrap = this.contentEl.createDiv({
+			cls: "yearly-planner-file-preview-wrap",
+		});
+		previewWrap.createEl("label", { text: t("modal.preview") });
+		const previewEl = previewWrap.createDiv({
+			cls: "yearly-planner-file-preview",
+		});
+		previewEl.createSpan({
+			text: t("modal.previewLoading"),
+			cls: "yearly-planner-file-preview-loading",
+		});
+		void this.loadPreview(previewEl);
 
 		const btnRow = this.contentEl.createDiv({
 			cls: "yearly-planner-file-options-buttons",
@@ -1016,6 +1036,11 @@ export class FileOptionsModal extends Modal {
 		const todo = this.todoCheckbox.checked;
 		const completed = this.completedCheckbox.checked;
 		try {
+			fileToUpdate = await updateFileTitle(
+				this.app,
+				fileToUpdate,
+				this.titleInput.value,
+			);
 			await updateFileColor(this.app, fileToUpdate, color);
 			await updateFileTodoStatus(this.app, fileToUpdate, todo, completed);
 			await updateFileNotifyMinutes(
@@ -1026,6 +1051,13 @@ export class FileOptionsModal extends Modal {
 			this.onClosed();
 			this.close();
 		} catch (err) {
+			if (
+				(err as Error & { code?: string }).code ===
+				"PLANNER_RENAME_CONFLICT"
+			) {
+				new Notice(t("modal.titleRenameConflict"));
+				return;
+			}
 			const msg =
 				err instanceof Error
 					? err.message

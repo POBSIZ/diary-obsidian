@@ -93,26 +93,6 @@ export function getRangeLaneMap(ranges: RangeForYear[]): Map<string, number> {
 	return map;
 }
 
-/** Returns a stable map from range basename to stack index (0-based) for the given year. */
-export function getRangeStackIndexMap(
-	app: App,
-	year: number,
-): Map<string, number> {
-	const yearStart = `${year}-01-01`;
-	const yearEnd = `${year}-12-31`;
-	const ranges: Array<{ basename: string; start: string }> = [];
-	for (const file of app.vault.getMarkdownFiles()) {
-		const parsed = parseRangeBasename(file.basename);
-		if (!parsed) continue;
-		if (parsed.end < yearStart || parsed.start > yearEnd) continue;
-		ranges.push({ basename: file.basename, start: parsed.start });
-	}
-	ranges.sort((a, b) => a.start.localeCompare(b.start));
-	const map = new Map<string, number>();
-	ranges.forEach((r, i) => map.set(r.basename, i));
-	return map;
-}
-
 export function getRangeFilePath(
 	folder: string,
 	startYear: number,
@@ -151,6 +131,9 @@ export function getFilesForDate(
 				!parseRangeBasename(file.basename))
 		);
 	});
+	singleFiles.sort((a, b) =>
+		a.basename.localeCompare(b.basename, undefined, { numeric: true }),
+	);
 
 	const rangeFiles: Array<{
 		file: TFile;
@@ -222,7 +205,7 @@ function toStringSafe(val: unknown): string | null {
 }
 
 /** Extract suffix from basename for chip display. Single: YYYY-MM-DD-suffix, Range: YYYY-MM-DD--YYYY-MM-DD-suffix. */
-function getSuffixFromBasename(basename: string): string | null {
+export function getSuffixFromBasename(basename: string): string | null {
 	const clean = basename.replace(/\.md$/i, "");
 	const rangeParsed = parseRangeBasename(clean);
 	if (rangeParsed?.suffix) return rangeParsed.suffix;
