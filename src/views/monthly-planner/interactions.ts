@@ -58,6 +58,12 @@ export class MonthlyInteractionHandler {
 	private get doc(): Document {
 		return this.view.contentEl.ownerDocument;
 	}
+	private isInsideDaySummary(target: EventTarget | null): boolean {
+		return (
+			target instanceof HTMLElement &&
+			Boolean(target.closest(".monthly-planner-day-summary-sheet"))
+		);
+	}
 
 	constructor(view: MonthlyPlannerViewDelegate) {
 		this.view = view;
@@ -223,6 +229,10 @@ export class MonthlyInteractionHandler {
 	}
 
 	handlePlannerTouchStart(e: TouchEvent): void {
+		if (this.isInsideDaySummary(e.target)) {
+			this.touchStartPos = null;
+			return;
+		}
 		if (e.touches.length >= 2) {
 			this.touchStartPos = null;
 			return;
@@ -242,6 +252,10 @@ export class MonthlyInteractionHandler {
 	}
 
 	handlePlannerTouchEnd(e: TouchEvent): void {
+		if (this.isInsideDaySummary(e.target)) {
+			this.touchStartPos = null;
+			return;
+		}
 		if (this.view.dragState || this.view.chipDragState) return;
 		const t = e.changedTouches[0];
 		if (!t) return;

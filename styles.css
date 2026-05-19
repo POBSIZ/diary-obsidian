@@ -22,6 +22,16 @@ available in the app when your plugin is enabled.
 	--planner-cell-padding: 0.25rem 0.5rem;
 	--planner-cell-padding-mobile-v: 0.15rem;
 	--planner-cell-padding-mobile-h: 0.2rem;
+	/* Shared shape/spacing tokens for non-functional visual consistency */
+	--planner-radius-xs: 2px;
+	--planner-radius-sm: var(--input-radius, 4px);
+	--planner-border-width-thin: 1px;
+	--planner-border-width-accent: 3px;
+	--planner-chip-gap: 0.125rem;
+	--planner-chip-padding: 0.15rem 0.25rem 0.15rem 0.4rem;
+	--planner-chip-font-size-sm: 0.65em;
+	--planner-weekend-saturday: #3b82f6;
+	--planner-weekend-sunday: #ef4444;
 }
 
 /* Planner copy/paste in progress (class on view contentEl) */
@@ -77,7 +87,7 @@ available in the app when your plugin is enabled.
 	height: var(--planner-btn-size);
 	padding: 0;
 	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--input-radius, 4px);
+	border-radius: var(--planner-radius-sm);
 	background: var(--background-modifier-form-field);
 	color: var(--text-normal);
 	cursor: pointer;
@@ -97,7 +107,7 @@ available in the app when your plugin is enabled.
 	font-weight: 600;
 	text-align: center;
 	cursor: pointer;
-	border-radius: var(--input-radius, 4px);
+	border-radius: var(--planner-radius-sm);
 	user-select: none;
 }
 
@@ -162,7 +172,7 @@ available in the app when your plugin is enabled.
 .yearly-planner-mode-btn {
 	padding: 0.35rem 0.75rem;
 	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--input-radius, 4px);
+	border-radius: var(--planner-radius-sm);
 	background: var(--background-modifier-form-field);
 	color: var(--text-normal);
 	cursor: pointer;
@@ -186,8 +196,8 @@ available in the app when your plugin is enabled.
 	box-sizing: border-box;
 	padding: 0 0.5rem;
 	font-size: 1rem;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--input-radius, 4px);
+	border: var(--planner-border-width-thin) solid var(--background-modifier-border);
+	border-radius: var(--planner-radius-sm);
 	background: var(--background-modifier-form-field);
 	color: var(--text-normal);
 	box-shadow: none;
@@ -241,7 +251,7 @@ available in the app when your plugin is enabled.
 	height: 1.5rem;
 	padding: 0;
 	border: 2px solid var(--background-modifier-border);
-	border-radius: var(--input-radius, 4px);
+	border-radius: var(--planner-radius-sm);
 	cursor: pointer;
 	flex-shrink: 0;
 	transition:
@@ -263,8 +273,8 @@ available in the app when your plugin is enabled.
 	width: 2.5rem;
 	height: 1.75rem;
 	padding: 0.15rem;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--input-radius, 4px);
+	border: var(--planner-border-width-thin) solid var(--background-modifier-border);
+	border-radius: var(--planner-radius-sm);
 	background: var(--background-modifier-form-field);
 	cursor: pointer;
 	flex-shrink: 0;
@@ -276,7 +286,7 @@ available in the app when your plugin is enabled.
 
 .yearly-planner-color-picker::-webkit-color-swatch {
 	border: 1px solid var(--background-modifier-border);
-	border-radius: 2px;
+	border-radius: var(--planner-radius-xs);
 }
 
 .yearly-planner-scroll {
@@ -407,8 +417,8 @@ available in the app when your plugin is enabled.
 	position: absolute;
 	top: 0;
 	bottom: 0;
-	width: 3px;
-	border-right: 3px solid var(--interactive-accent);
+	width: var(--planner-border-width-accent);
+	border-right: var(--planner-border-width-accent) solid var(--interactive-accent);
 	box-sizing: border-box;
 	pointer-events: auto;
 	cursor: pointer;
@@ -490,7 +500,7 @@ available in the app when your plugin is enabled.
 .yearly-planner-cell-holidays {
 	display: flex;
 	flex-direction: column;
-	gap: 0.125rem;
+	gap: var(--planner-chip-gap);
 	align-items: stretch;
 	justify-content: flex-end;
 	position: relative;
@@ -509,16 +519,16 @@ available in the app when your plugin is enabled.
 		var(--text-accent) 12%,
 		var(--background-primary)
 	);
-	border-left: 3px solid var(--text-accent);
+	border-left: var(--planner-border-width-accent) solid var(--text-accent);
 	color: var(--text-accent);
-	font-size: 0.65em;
+	font-size: var(--planner-chip-font-size-sm);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	max-width: 100%;
 	min-width: 0;
-	padding: 0.15rem 0.25rem 0.15rem 0.4rem;
-	border-radius: 2px;
+	padding: var(--planner-chip-padding);
+	border-radius: var(--planner-radius-xs);
 	cursor: pointer;
 	justify-content: flex-start;
 }
@@ -541,7 +551,7 @@ available in the app when your plugin is enabled.
 .yearly-planner-cell-saturday:not(.yearly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
-		#3b82f6 3%,
+		var(--planner-weekend-saturday) 3%,
 		var(--table-background, var(--background-primary))
 	) !important;
 }
@@ -549,7 +559,7 @@ available in the app when your plugin is enabled.
 .yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
-		#ef4444 3%,
+		var(--planner-weekend-sunday) 3%,
 		var(--table-background, var(--background-primary))
 	) !important;
 }
@@ -576,12 +586,20 @@ available in the app when your plugin is enabled.
 
 .yearly-planner-cell-saturday:not(.yearly-planner-cell-invalid)
 	.yearly-planner-weekend-label {
-	color: color-mix(in srgb, #3b82f6 70%, var(--text-muted));
+	color: color-mix(
+		in srgb,
+		var(--planner-weekend-saturday) 70%,
+		var(--text-muted)
+	);
 }
 
 .yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid)
 	.yearly-planner-weekend-label {
-	color: color-mix(in srgb, #ef4444 70%, var(--text-muted));
+	color: color-mix(
+		in srgb,
+		var(--planner-weekend-sunday) 70%,
+		var(--text-muted)
+	);
 }
 
 .yearly-planner-table
@@ -594,7 +612,7 @@ available in the app when your plugin is enabled.
 	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
-		#3b82f6 4%,
+		var(--planner-weekend-saturday) 4%,
 		var(--table-row-alt-background, var(--background-secondary-alt))
 	) !important;
 }
@@ -605,7 +623,7 @@ available in the app when your plugin is enabled.
 	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
-		#ef4444 4%,
+		var(--planner-weekend-sunday) 4%,
 		var(--table-row-alt-background, var(--background-secondary-alt))
 	) !important;
 }
@@ -620,7 +638,7 @@ available in the app when your plugin is enabled.
 	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
-		#3b82f6 4%,
+		var(--planner-weekend-saturday) 4%,
 		var(--table-background, var(--background-primary))
 	) !important;
 }
@@ -631,7 +649,7 @@ available in the app when your plugin is enabled.
 	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
-		#ef4444 4%,
+		var(--planner-weekend-sunday) 4%,
 		var(--table-background, var(--background-primary))
 	) !important;
 }
@@ -643,7 +661,7 @@ available in the app when your plugin is enabled.
 .yearly-planner-cell-files {
 	display: flex;
 	flex-direction: column;
-	gap: 0.125rem;
+	gap: var(--planner-chip-gap);
 	align-items: stretch;
 	justify-content: center;
 	min-height: 100%;
@@ -659,16 +677,16 @@ available in the app when your plugin is enabled.
 	box-sizing: border-box;
 	width: 100%;
 	background: var(--background-primary);
-	font-size: 0.65em;
+	font-size: var(--planner-chip-font-size-sm);
 	color: var(--text-muted);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	max-width: 100%;
 	min-width: 0;
-	padding: 0.15rem 0.25rem 0.15rem 0.4rem;
-	border-radius: 2px;
-	border-left: 3px solid var(--interactive-accent);
+	padding: var(--planner-chip-padding);
+	border-radius: var(--planner-radius-xs);
+	border-left: var(--planner-border-width-accent) solid var(--interactive-accent);
 	cursor: pointer;
 }
 
@@ -1218,7 +1236,7 @@ body.-is-mobile
 	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
-		#3b82f6 8%,
+		var(--planner-weekend-saturday) 8%,
 		var(--table-row-alt-background, var(--background-secondary-alt))
 	) !important;
 }
@@ -1235,7 +1253,7 @@ body.-is-mobile
 	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
-		#ef4444 8%,
+		var(--planner-weekend-sunday) 8%,
 		var(--table-row-alt-background, var(--background-secondary-alt))
 	) !important;
 }
@@ -1262,7 +1280,7 @@ body.-is-mobile
 	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
-		#3b82f6 8%,
+		var(--planner-weekend-saturday) 8%,
 		var(--table-background, var(--background-primary))
 	) !important;
 }
@@ -1279,7 +1297,7 @@ body.-is-mobile
 	.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
-		#ef4444 8%,
+		var(--planner-weekend-sunday) 8%,
 		var(--table-background, var(--background-primary))
 	) !important;
 }
@@ -1540,7 +1558,7 @@ body.-is-mobile .yearly-planner-cell-file {
 .monthly-planner-cell-saturday:not(.monthly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
-		#3b82f6 3%,
+		var(--planner-weekend-saturday) 3%,
 		var(--table-background, var(--background-primary))
 	) !important;
 }
@@ -1548,7 +1566,7 @@ body.-is-mobile .yearly-planner-cell-file {
 .monthly-planner-cell-sunday:not(.monthly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
-		#ef4444 3%,
+		var(--planner-weekend-sunday) 3%,
 		var(--table-background, var(--background-primary))
 	) !important;
 }
@@ -1585,7 +1603,7 @@ body.-is-mobile .yearly-planner-cell-file {
 .monthly-planner-cell-files {
 	display: flex;
 	flex-direction: column;
-	gap: 0.125rem;
+	gap: var(--planner-chip-gap);
 	align-items: stretch;
 	justify-content: flex-start;
 	min-width: 0;
@@ -1607,9 +1625,9 @@ body.-is-mobile .yearly-planner-cell-file {
 	text-overflow: ellipsis;
 	max-width: 100%;
 	min-width: 0;
-	padding: 0.15rem 0.25rem 0.15rem 0.4rem;
-	border-radius: 2px;
-	border-left: 3px solid var(--interactive-accent);
+	padding: var(--planner-chip-padding);
+	border-radius: var(--planner-radius-xs);
+	border-left: var(--planner-border-width-accent) solid var(--interactive-accent);
 	cursor: pointer;
 }
 
@@ -1671,7 +1689,7 @@ body.-is-mobile .yearly-planner-cell-file {
 		var(--range-color) 15%,
 		var(--background-primary)
 	);
-	border-radius: 2px;
+	border-radius: var(--planner-radius-xs);
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 	cursor: pointer;
 	overflow: hidden;
@@ -1682,8 +1700,8 @@ body.-is-mobile .yearly-planner-cell-file {
 
 /* run-start/run-mid/run-end: radius only at bar ends so segments connect across cells */
 .monthly-planner-range-run-start {
-	border-top-left-radius: 2px;
-	border-bottom-left-radius: 2px;
+	border-top-left-radius: var(--planner-radius-xs);
+	border-bottom-left-radius: var(--planner-radius-xs);
 	border-top-right-radius: 0;
 	border-bottom-right-radius: 0;
 	margin-left: var(--monthly-cell-padding-h, 0.4rem);
@@ -1698,13 +1716,13 @@ body.-is-mobile .yearly-planner-cell-file {
 .monthly-planner-range-run-end {
 	border-top-left-radius: 0;
 	border-bottom-left-radius: 0;
-	border-top-right-radius: 2px;
-	border-bottom-right-radius: 2px;
+	border-top-right-radius: var(--planner-radius-xs);
+	border-bottom-right-radius: var(--planner-radius-xs);
 	margin-right: var(--monthly-cell-padding-h, 0.4rem);
 }
 /* Single-cell range: both run-start and run-end, keep border-left as color point */
 .monthly-planner-range-run-start.monthly-planner-range-run-end {
-	border-radius: 2px;
+	border-radius: var(--planner-radius-xs);
 	border-left: 4px solid var(--range-color);
 	margin-left: var(--monthly-cell-padding-h, 0.4rem);
 	margin-right: var(--monthly-cell-padding-h, 0.4rem);
@@ -1860,7 +1878,7 @@ body.-is-mobile .yearly-planner-cell-file {
 .monthly-planner-cell-holidays {
 	display: flex;
 	flex-direction: column;
-	gap: 0.125rem;
+	gap: var(--planner-chip-gap);
 	align-items: stretch;
 	justify-content: flex-end;
 	position: relative;
@@ -1879,7 +1897,7 @@ body.-is-mobile .yearly-planner-cell-file {
 		var(--text-accent) 12%,
 		var(--background-primary)
 	);
-	border-left: 3px solid var(--text-accent);
+	border-left: var(--planner-border-width-accent) solid var(--text-accent);
 	color: var(--text-accent);
 	font-size: 0.7em;
 	white-space: nowrap;
@@ -1887,8 +1905,8 @@ body.-is-mobile .yearly-planner-cell-file {
 	text-overflow: ellipsis;
 	max-width: 100%;
 	min-width: 0;
-	padding: 0.15rem 0.25rem 0.15rem 0.4rem;
-	border-radius: 2px;
+	padding: var(--planner-chip-padding);
+	border-radius: var(--planner-radius-xs);
 	cursor: pointer;
 	justify-content: flex-start;
 }
@@ -2180,7 +2198,7 @@ body.-is-mobile .monthly-planner-weekend-label {
 .monthly-list-planner-day-sat:not(.monthly-list-planner-day-holiday) {
 	background: color-mix(
 		in srgb,
-		#3b82f6 6%,
+		var(--planner-weekend-saturday) 6%,
 		var(--background-primary)
 	);
 }
@@ -2188,7 +2206,7 @@ body.-is-mobile .monthly-planner-weekend-label {
 .monthly-list-planner-day-sun:not(.monthly-list-planner-day-holiday) {
 	background: color-mix(
 		in srgb,
-		#ef4444 6%,
+		var(--planner-weekend-sunday) 6%,
 		var(--background-primary)
 	);
 }

@@ -90,6 +90,12 @@ A **diary plugin** for Obsidian. Provides yearly and monthly planners with date 
 - `npm run build` (production build)
 - `npm run lint` (ESLint)
 
+## PR guide
+
+- PR 작성 시 `.github/pull_request_template.md` 체크리스트를 사용하세요.
+- UI 변경은 `design.md` 원칙(테마 우선, 기능 우선)과 `styles.css` 공통 토큰을 우선 적용하세요.
+- Planner 관련 UI 변경은 Yearly/Monthly/Monthly List, 드래그/선택/클립보드 상호작용까지 확인 후 PR을 여세요.
+
 ## License
 
 See LICENSE file.
