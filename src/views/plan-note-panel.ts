@@ -30,6 +30,7 @@ export async function renderPlanNotePanel(
 	if (file instanceof TFile) {
 		const header = panel.createDiv({ cls: "plan-note-panel-header" });
 		const expanded = opts.expanded ?? true;
+		panel.toggleClass("is-collapsed", !expanded);
 		if (opts.onToggle) {
 			const toggleBtn = header.createEl("button", {
 				cls: "plan-note-panel-toggle-btn clickable-icon",
@@ -136,6 +137,7 @@ export function syncPlanNotePanelExpandedState(
 	if (body) {
 		body.toggleClass("is-collapsed", !expanded);
 	}
+	wrapper.toggleClass("is-collapsed", !expanded);
 	if (toggleBtn) {
 		setIcon(toggleBtn, expanded ? "chevron-down" : "chevron-right");
 		toggleBtn.setAttribute(

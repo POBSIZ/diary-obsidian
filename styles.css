@@ -222,7 +222,7 @@ available in the app when your plugin is enabled.
 	min-height: 2.25rem;
 }
 
-.yearly-planner-modal-content:has(.yearly-planner-create-file-modal) .mod-cta {
+.yearly-planner-modal-content.yearly-planner-modal-create-file .mod-cta {
 	min-height: 2.25rem;
 }
 
@@ -340,21 +340,18 @@ available in the app when your plugin is enabled.
 	font-weight: var(--table-header-weight, 600);
 }
 
-.yearly-planner-table thead th {
-	min-width: 3rem;
-}
-
 /* Sticky headers: month row (top) and day column (left) - fixed when scrolling */
 /* z-index must exceed .yearly-planner-cell-files (1000) so headers are not obscured by file backgrounds */
 /* Use --background-secondary (skip --table-header-background which can be transparent in some themes) */
 .yearly-planner-table thead th {
+	min-width: 3rem;
 	position: sticky;
 	top: 0;
 	z-index: 1001;
 	background-color: var(
 		--background-secondary,
 		var(--background-primary)
-	) !important;
+	);
 	box-shadow: 0 1px 0
 		var(--table-border-color, var(--background-modifier-border));
 }
@@ -369,7 +366,7 @@ available in the app when your plugin is enabled.
 	background-color: var(
 		--background-secondary,
 		var(--background-primary)
-	) !important;
+	);
 	box-shadow: 1px 1px 0
 		var(--table-border-color, var(--background-modifier-border));
 }
@@ -383,7 +380,7 @@ available in the app when your plugin is enabled.
 	background-color: var(
 		--background-secondary,
 		var(--background-primary)
-	) !important;
+	);
 	box-shadow: 1px 0 0
 		var(--table-border-color, var(--background-modifier-border));
 }
@@ -470,12 +467,12 @@ available in the app when your plugin is enabled.
 	);
 }
 
-.yearly-planner-cell-invalid {
+.yearly-planner-table tbody td.yearly-planner-cell-invalid {
 	background: color-mix(
 		in srgb,
 		var(--text-muted) 12%,
 		var(--background-primary)
-	) !important;
+	);
 	color: var(--text-faint);
 	opacity: 0.85;
 	cursor: default;
@@ -488,12 +485,14 @@ available in the app when your plugin is enabled.
 }
 
 /* Holiday indicator: left border accent */
-.yearly-planner-cell-holiday {
-	border-left: 3px solid var(--text-accent) !important;
+.yearly-planner-table tbody td.yearly-planner-cell-holiday {
+	border-left: 3px solid var(--text-accent);
 }
 
-.yearly-planner-cell-holiday.yearly-planner-cell-selected {
-	border-left-color: var(--text-on-accent, var(--text-normal)) !important;
+.yearly-planner-table
+	tbody
+	td.yearly-planner-cell-holiday.yearly-planner-cell-selected {
+	border-left-color: var(--text-on-accent, var(--text-normal));
 }
 
 /* Holiday badges - distinct from file chips */
@@ -548,20 +547,24 @@ available in the app when your plugin is enabled.
 }
 
 /* Weekend (Saturday/Sunday) indicator - exclude invalid cells */
-.yearly-planner-cell-saturday:not(.yearly-planner-cell-invalid) {
+.yearly-planner-table
+	tbody
+	td.yearly-planner-cell-saturday:not(.yearly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
 		var(--planner-weekend-saturday) 3%,
 		var(--table-background, var(--background-primary))
-	) !important;
+	);
 }
 
-.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid) {
+.yearly-planner-table
+	tbody
+	td.yearly-planner-cell-sunday:not(.yearly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
 		var(--planner-weekend-sunday) 3%,
 		var(--table-background, var(--background-primary))
-	) !important;
+	);
 }
 
 .yearly-planner-cell-saturday.yearly-planner-cell-holiday:not(
@@ -614,7 +617,7 @@ available in the app when your plugin is enabled.
 		in srgb,
 		var(--planner-weekend-saturday) 4%,
 		var(--table-row-alt-background, var(--background-secondary-alt))
-	) !important;
+	);
 }
 
 .yearly-planner-table
@@ -625,7 +628,7 @@ available in the app when your plugin is enabled.
 		in srgb,
 		var(--planner-weekend-sunday) 4%,
 		var(--table-row-alt-background, var(--background-secondary-alt))
-	) !important;
+	);
 }
 
 .yearly-planner-table
@@ -640,7 +643,7 @@ available in the app when your plugin is enabled.
 		in srgb,
 		var(--planner-weekend-saturday) 4%,
 		var(--table-background, var(--background-primary))
-	) !important;
+	);
 }
 
 .yearly-planner-table
@@ -651,7 +654,7 @@ available in the app when your plugin is enabled.
 		in srgb,
 		var(--planner-weekend-sunday) 4%,
 		var(--table-background, var(--background-primary))
-	) !important;
+	);
 }
 
 .yearly-planner-table tbody td:hover .yearly-planner-weekend-label {
@@ -704,7 +707,7 @@ available in the app when your plugin is enabled.
 .yearly-planner-chip-dragging .yearly-planner-cell-file,
 .yearly-planner-chip-dragging .yearly-planner-cell-range-bars,
 .yearly-planner-chip-dragging .yearly-planner-cell-range-bar {
-	pointer-events: none !important;
+	pointer-events: none;
 }
 
 .monthly-planner-chip-dragging .monthly-planner-cell-files,
@@ -715,7 +718,7 @@ available in the app when your plugin is enabled.
 .monthly-planner-chip-dragging .monthly-list-planner-cell-file,
 .monthly-planner-chip-dragging .monthly-list-planner-ranges,
 .monthly-planner-chip-dragging .monthly-list-planner-range-bar {
-	pointer-events: none !important;
+	pointer-events: none;
 }
 
 /* Chip drag drop target */
@@ -724,14 +727,14 @@ available in the app when your plugin is enabled.
 		in srgb,
 		var(--interactive-accent) 25%,
 		var(--table-background, var(--background-primary))
-	) !important;
+	);
 	box-shadow: inset 0 0 0 2px var(--interactive-accent);
 }
 
 /* Drag selection highlight */
-.yearly-planner-cell-selected {
-	background: var(--interactive-accent) !important;
-	color: var(--text-on-accent, var(--text-normal)) !important;
+.yearly-planner-table tbody td.yearly-planner-cell-selected {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent, var(--text-normal));
 	opacity: 0.4;
 }
 
@@ -766,8 +769,8 @@ available in the app when your plugin is enabled.
 	.yearly-planner-cell-selected.yearly-planner-cell-sunday:not(
 		.yearly-planner-cell-invalid
 	) {
-	background: var(--interactive-accent) !important;
-	color: var(--text-on-accent, var(--text-normal)) !important;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent, var(--text-normal));
 	opacity: 0.4;
 }
 
@@ -778,17 +781,13 @@ available in the app when your plugin is enabled.
 		in srgb,
 		var(--text-accent) 14%,
 		var(--table-background, var(--background-primary))
-	) !important;
+	);
 }
 
 .yearly-planner-cell-file.yearly-planner-cell-clipboard-selected,
 .yearly-planner-cell-range-bar.yearly-planner-cell-clipboard-selected {
 	outline: 2px solid var(--text-accent);
 	outline-offset: 1px;
-}
-
-.yearly-planner-table tbody td {
-	position: relative;
 }
 
 .yearly-planner-holiday-modal-date {
@@ -921,6 +920,7 @@ available in the app when your plugin is enabled.
 		min-width: calc(
 			2.25rem + 12 * var(--yearly-planner-mobile-cell-width, 4.5rem)
 		);
+		border-radius: 2px;
 	}
 
 	.yearly-planner-table th,
@@ -956,6 +956,7 @@ available in the app when your plugin is enabled.
 	.yearly-planner-cell-file {
 		font-size: 0.75em;
 		padding: 0.2rem 0.3rem 0.2rem 0.45rem;
+		border-radius: 2px;
 	}
 
 	.yearly-planner-cell-holiday-badge {
@@ -963,14 +964,6 @@ available in the app when your plugin is enabled.
 		padding: 0.2rem 0.3rem 0.2rem 0.45rem;
 	}
 
-	/* Reduce border-radius on mobile to prevent excessive rounding in small cells */
-	.yearly-planner-table {
-		border-radius: 2px;
-	}
-
-	.yearly-planner-cell-file {
-		border-radius: 2px;
-	}
 }
 
 /* Small mobile: ~480px */
@@ -1099,10 +1092,10 @@ body.-is-mobile
 	line-height: 1;
 }
 body.is-mobile
-	.yearly-planner-modal-content:has(.yearly-planner-create-file-modal)
+	.yearly-planner-modal-content.yearly-planner-modal-create-file
 	.mod-cta,
 body.-is-mobile
-	.yearly-planner-modal-content:has(.yearly-planner-create-file-modal)
+	.yearly-planner-modal-content.yearly-planner-modal-create-file
 	.mod-cta {
 	min-height: 2.5rem;
 	height: 2.5rem;
@@ -1167,6 +1160,7 @@ body.-is-mobile .yearly-planner-table {
 	min-width: calc(
 		2.25rem + 12 * var(--yearly-planner-mobile-cell-width, 4.5rem)
 	);
+	border-radius: 2px;
 }
 
 body.is-mobile .yearly-planner-table thead .yearly-planner-corner,
@@ -1200,6 +1194,7 @@ body.is-mobile .yearly-planner-cell-file,
 body.-is-mobile .yearly-planner-cell-file {
 	font-size: 0.75em;
 	padding: 0.2rem 0.3rem 0.2rem 0.45rem;
+	border-radius: 2px;
 }
 
 body.is-mobile .yearly-planner-cell-holiday-badge,
@@ -1238,7 +1233,7 @@ body.-is-mobile
 		in srgb,
 		var(--planner-weekend-saturday) 8%,
 		var(--table-row-alt-background, var(--background-secondary-alt))
-	) !important;
+	);
 }
 
 body.is-mobile
@@ -1255,7 +1250,7 @@ body.-is-mobile
 		in srgb,
 		var(--planner-weekend-sunday) 8%,
 		var(--table-row-alt-background, var(--background-secondary-alt))
-	) !important;
+	);
 }
 
 body.is-mobile
@@ -1282,7 +1277,7 @@ body.-is-mobile
 		in srgb,
 		var(--planner-weekend-saturday) 8%,
 		var(--table-background, var(--background-primary))
-	) !important;
+	);
 }
 
 body.is-mobile
@@ -1299,7 +1294,7 @@ body.-is-mobile
 		in srgb,
 		var(--planner-weekend-sunday) 8%,
 		var(--table-background, var(--background-primary))
-	) !important;
+	);
 }
 
 body.is-mobile .yearly-planner-cell-file:active,
@@ -1311,16 +1306,6 @@ body.-is-mobile .yearly-planner-cell-file:active {
 body.is-mobile .yearly-planner-file-preview,
 body.-is-mobile .yearly-planner-file-preview {
 	border-radius: 4px;
-}
-
-body.is-mobile .yearly-planner-table,
-body.-is-mobile .yearly-planner-table {
-	border-radius: 2px;
-}
-
-body.is-mobile .yearly-planner-cell-file,
-body.-is-mobile .yearly-planner-cell-file {
-	border-radius: 2px;
 }
 
 /* ========== Monthly Planner ========== */
@@ -1437,7 +1422,6 @@ body.-is-mobile .yearly-planner-cell-file {
 			var(--monthly-range-bar-gap)
 	);
 	flex-shrink: 0;
-	width: 100%;
 	overflow-x: visible;
 	overflow-y: auto;
 	margin-left: calc(-1 * var(--monthly-cell-padding-h, 0.4rem));
@@ -1498,12 +1482,12 @@ body.-is-mobile .yearly-planner-cell-file {
 	justify-content: flex-start;
 }
 
-.monthly-planner-cell-invalid {
+.monthly-planner-table tbody td.monthly-planner-cell-invalid {
 	background: color-mix(
 		in srgb,
 		var(--text-muted) 12%,
 		var(--background-primary)
-	) !important;
+	);
 	color: var(--text-faint);
 	opacity: 0.85;
 	cursor: default;
@@ -1521,13 +1505,13 @@ body.-is-mobile .yearly-planner-cell-file {
 	box-shadow: inset 0 0 0 2px var(--interactive-accent);
 }
 
-.monthly-planner-cell-active-date {
+.monthly-planner-table tbody td.monthly-planner-cell-active-date {
 	box-shadow: inset 0 0 0 2px var(--text-accent);
 	background: color-mix(
 		in srgb,
 		var(--text-accent) 12%,
 		var(--table-background, var(--background-primary))
-	) !important;
+	);
 }
 
 .monthly-planner-cell-active-date .monthly-planner-cell-day {
@@ -1535,40 +1519,44 @@ body.-is-mobile .yearly-planner-cell-file {
 	font-weight: 700;
 }
 
-.monthly-planner-cell-holiday {
-	border-left: 3px solid var(--text-accent) !important;
+.monthly-planner-table tbody td.monthly-planner-cell-holiday {
+	border-left: 3px solid var(--text-accent);
 }
 
-.monthly-planner-cell-selected {
-	background: var(--interactive-accent) !important;
-	color: var(--text-on-accent, var(--text-normal)) !important;
+.monthly-planner-table tbody td.monthly-planner-cell-selected {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent, var(--text-normal));
 	opacity: 0.4;
 }
 
 /* Chip drag drop target */
-.monthly-planner-cell-drop-target {
+.monthly-planner-table tbody td.monthly-planner-cell-drop-target {
 	background: color-mix(
 		in srgb,
 		var(--interactive-accent) 25%,
 		var(--table-background, var(--background-primary))
-	) !important;
+	);
 	box-shadow: inset 0 0 0 2px var(--interactive-accent);
 }
 
-.monthly-planner-cell-saturday:not(.monthly-planner-cell-invalid) {
+.monthly-planner-table
+	tbody
+	td.monthly-planner-cell-saturday:not(.monthly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
 		var(--planner-weekend-saturday) 3%,
 		var(--table-background, var(--background-primary))
-	) !important;
+	);
 }
 
-.monthly-planner-cell-sunday:not(.monthly-planner-cell-invalid) {
+.monthly-planner-table
+	tbody
+	td.monthly-planner-cell-sunday:not(.monthly-planner-cell-invalid) {
 	background: color-mix(
 		in srgb,
 		var(--planner-weekend-sunday) 3%,
 		var(--table-background, var(--background-primary))
-	) !important;
+	);
 }
 
 /* Ensure drag selection highlight overrides weekend background colors */
@@ -1578,8 +1566,8 @@ body.-is-mobile .yearly-planner-cell-file {
 .monthly-planner-cell-selected.monthly-planner-cell-sunday:not(
 		.monthly-planner-cell-invalid
 	) {
-	background: var(--interactive-accent) !important;
-	color: var(--text-on-accent, var(--text-normal)) !important;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent, var(--text-normal));
 	opacity: 0.4;
 }
 
@@ -1590,7 +1578,7 @@ body.-is-mobile .yearly-planner-cell-file {
 		in srgb,
 		var(--text-accent) 14%,
 		var(--table-background, var(--background-primary))
-	) !important;
+	);
 }
 
 .monthly-planner-cell-file.monthly-planner-cell-clipboard-selected,
@@ -2032,7 +2020,7 @@ body.-is-mobile .monthly-planner-cell-active-date {
 		in srgb,
 		var(--text-accent) 18%,
 		var(--table-background, var(--background-primary))
-	) !important;
+	);
 }
 
 body.is-mobile .monthly-planner-range-bars,
@@ -2134,7 +2122,7 @@ body.-is-mobile .monthly-planner-cell-holiday-badge {
 
 body.is-mobile .monthly-planner-cell-holiday,
 body.-is-mobile .monthly-planner-cell-holiday {
-	border-left-width: 2px !important;
+	border-left-width: 2px;
 }
 
 body.is-mobile .monthly-planner-weekend-label,
@@ -2271,7 +2259,7 @@ body.-is-mobile .monthly-planner-weekend-label {
 	position: relative;
 	left: auto;
 	right: auto;
-	top: auto !important;
+	top: auto;
 	z-index: auto;
 	margin: 0;
 	height: var(--monthly-range-bar-height);
@@ -2384,7 +2372,7 @@ body.-is-mobile
 	.monthly-planner-range-bar {
 	min-height: 2.75rem;
 	height: auto;
-	top: auto !important;
+	top: auto;
 }
 
 body.is-mobile
@@ -2516,7 +2504,7 @@ body.-is-mobile .plan-note-panel-body {
 	display: none;
 }
 
-.plan-note-panel:has(.plan-note-panel-body.is-collapsed) .plan-note-panel-header {
+.plan-note-panel.is-collapsed .plan-note-panel-header {
 	border-bottom: none;
 }
 

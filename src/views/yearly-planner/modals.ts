@@ -302,6 +302,7 @@ export class CreateFileModal extends Modal {
 
 	onOpen(): void {
 		this.contentEl.addClass("yearly-planner-modal-content");
+		this.contentEl.addClass("yearly-planner-modal-create-file");
 		const { bounds, defaultFolder } = this.options;
 		const today = new Date();
 
